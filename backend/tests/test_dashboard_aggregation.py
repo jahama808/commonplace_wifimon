@@ -64,11 +64,26 @@ class TestStatusRollup:
 
 
 class TestDerivePin:
-    def test_within_region_radius(self):
-        for slug, (cx, cy, r) in ISLAND_REGIONS.items():
-            x, y = derive_pin("property-aks", slug)
-            assert abs(x - cx) <= r + 1e-9
-            assert abs(y - cy) <= r * 0.6 + 1e-9, f"{slug}: y={y} out of range"
+    """The pin must satisfy the actual ellipse constraint that HeroMap
+    renders, not just a rectangular bound. The y-radius in normalized
+    coords is `r * (W/H * 0.5) ≈ r * 1.184`, NOT `r` — because the
+    HeroMap canvas is wider than tall (900 × 380)."""
+
+    def _assert_inside_ellipse(self, slug: str, x: float, y: float) -> None:
+        cx, cy, r = ISLAND_REGIONS[slug]
+        Y_FACTOR = (900 / 380) * 0.5  # ≈ 1.184
+        ellipse_value = ((x - cx) / r) ** 2 + ((y - cy) / (r * Y_FACTOR)) ** 2
+        assert ellipse_value <= 1.0, (
+            f"{slug}: pin ({x:.4f}, {y:.4f}) outside ellipse "
+            f"(center={cx, cy}, r={r}); value={ellipse_value:.4f} > 1"
+        )
+
+    def test_pin_lands_inside_island_ellipse(self):
+        # Sweep a few synthetic property ids per island.
+        for slug in ISLAND_REGIONS:
+            for pid in ("aks", "prk", "test-1", "test-2", "x", "yyy", "zz9"):
+                x, y = derive_pin(pid, slug)
+                self._assert_inside_ellipse(slug, x, y)
 
     def test_deterministic_for_same_id(self):
         a = derive_pin("aks", "maui")
@@ -83,5 +98,4 @@ class TestDerivePin:
 
     def test_unknown_slug_falls_back_to_oahu(self):
         x, y = derive_pin("aks", "atlantis")
-        cx, cy, r = ISLAND_REGIONS["oahu"]
-        assert abs(x - cx) <= r + 1e-9
+        self._assert_inside_ellipse("oahu", x, y)

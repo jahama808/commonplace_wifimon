@@ -19,6 +19,7 @@ from app.schemas.dashboard import (
     MaintenanceWindow,
     PropertyPin,
 )
+from app.services.dashboard_aggregation import derive_pin
 
 HST = ZoneInfo("Pacific/Honolulu")
 
@@ -179,22 +180,28 @@ def build_dashboard(
     if island_filter and island_filter != "all":
         raw = [p for p in raw if p["island"] == island_filter]
 
-    properties = [
-        PropertyPin(
-            id=p["id"],
-            name=p["name"],
-            island=p["island"],
-            central_office=p["co"],
-            networks=p["networks"],
-            devices=p["devices"],
-            status=p["status"],
-            offline_count=p["offline"],
-            lat=p["lat"],
-            lng=p["lng"],
-            spark=_gen_spark(i + 3),
+    properties: list[PropertyPin] = []
+    for i, p in enumerate(raw):
+        # Recompute pin position via `derive_pin` so it actually lands inside
+        # the island ellipse the FE renders. The hand-coded `lat`/`lng` in
+        # `_PROPERTIES_RAW` are leftover from the design prototype, which had
+        # several pins outside their island silhouettes — ignore them.
+        lng, lat = derive_pin(p["id"], p["island"])
+        properties.append(
+            PropertyPin(
+                id=p["id"],
+                name=p["name"],
+                island=p["island"],
+                central_office=p["co"],
+                networks=p["networks"],
+                devices=p["devices"],
+                status=p["status"],
+                offline_count=p["offline"],
+                lat=lat,
+                lng=lng,
+                spark=_gen_spark(i + 3),
+            )
         )
-        for i, p in enumerate(raw)
-    ]
 
     # Per-island summary across the unfiltered set so the tiles are stable.
     islands: list[IslandSummary] = []
