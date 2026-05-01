@@ -79,18 +79,13 @@ with mock fixtures. Click around, verify the drawer / search / theme toggle.
 
 ## Updating the app
 
-This directory is not currently a git repo, so updates are whatever-changed-in-place
-plus a rebuild. After editing files (or replacing the directory):
-
 ```bash
 cd /home/jahama/servers-prod/common-area-looking-glass-conversion
+git pull                                    # repo is on github.com/jahama808/commonplace_wifimon
 ./deploy/bootstrap.sh                       # rebuilds frontend + reinstalls deps
 sudo systemctl restart wifimon-web wifimon-frontend
 # Worker (only if running): sudo systemctl restart wifimon-worker
 ```
-
-If you want a proper `git pull` workflow later, run `git init` here and push to
-a remote — `bootstrap.sh` doesn't care either way.
 
 ## Cutover from mock to real eero
 
