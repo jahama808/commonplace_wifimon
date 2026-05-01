@@ -122,17 +122,28 @@ echo "Save this password: $WIFIMON_PW"
 (`deploy/sql/init.sql` is the same thing with placeholders if you'd
 rather edit-then-run.)
 
-### 3. Update `/home/jahama/servers-prod/common-area-looking-glass-conversion/.env`:
+### 3. Edit three existing keys in `/home/jahama/servers-prod/common-area-looking-glass-conversion/.env`:
 
-```
-USE_MOCK_DATA=false
-DATABASE_URL=postgresql+asyncpg://wifimon:THE_PASSWORD_FROM_STEP_2@127.0.0.1:5432/wifimon
-EERO_API_TOKEN=...   # copy from /home/jahama/servers-prod/common_area_looking_glass/.env
-PUSHOVER_APP_TOKEN=...   # optional
-PUSHOVER_USER_KEY=...    # optional
+The file already exists (bootstrap.sh wrote it). You're CHANGING values
+in place, not adding new lines.
+
+| Key | New value |
+|---|---|
+| `USE_MOCK_DATA` | `false` |
+| `DATABASE_URL` | `postgresql+asyncpg://wifimon:THE_PASSWORD_FROM_STEP_2@127.0.0.1:5432/wifimon` |
+| `EERO_API_TOKEN` | (copy verbatim from the legacy app's `.env`) |
+
+Quick way to grab the legacy values without typing them:
+
+```bash
+grep ^EERO_API_TOKEN /home/jahama/servers-prod/common_area_looking_glass/.env
+grep ^PUSHOVER     /home/jahama/servers-prod/common_area_looking_glass/.env  # optional
 ```
 
-The eero token is the same as the legacy app's; copy verbatim.
+`PUSHOVER_APP_TOKEN` + `PUSHOVER_USER_KEY` are optional — only set them
+if you want push notifications on outages. Everything else
+(`SECRET_KEY`, `DOMAIN`, `SESSION_COOKIE_SECURE`, `LOG_FORMAT`, etc.)
+stays as bootstrap left it.
 
 ### 4. Create the empty schema:
 
