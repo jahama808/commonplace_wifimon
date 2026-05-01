@@ -87,37 +87,74 @@ sudo systemctl restart wifimon-web wifimon-frontend
 # Worker (only if running): sudo systemctl restart wifimon-worker
 ```
 
-## Cutover from mock to real eero
+## Cutover from mock to real eero (with legacy data migration)
 
-Once you've validated the UI in mock mode and you're ready to point the
-new app at the real eero data:
+The legacy `common_area_looking_glass` Django app's schema maps 1:1 to the
+new SPEC §4 entities, so we can copy the existing rows directly instead of
+rebuilding from scratch. Old + new run side-by-side at different domains
+until you've validated the new dashboard against the old one.
 
-### 1. Provision Postgres (sudo, one-time):
-
-Edit `deploy/sql/init.sql` — change the `CHANGE_ME` password to something real, then:
+### 1. Sanity-check what the migrator sees (no writes):
 
 ```bash
-sudo -u postgres psql -f /home/jahama/servers-prod/common-area-looking-glass-conversion/deploy/sql/init.sql
+cd /home/jahama/servers-prod/common-area-looking-glass-conversion
+backend/.venv/bin/python deploy/migrate_from_legacy.py --dry-run
 ```
 
-### 2. Update `/home/jahama/servers-prod/common-area-looking-glass-conversion/.env`:
+You should see ~7 users, 10 properties, 29 common areas, ~45K network
+status rows, ~39K device-count rows, etc. If any of those numbers are
+zero it's a config issue — fix before continuing.
+
+### 2. Provision the new Postgres role + database (sudo, one-time):
+
+Pick a strong password, then:
+
+```bash
+WIFIMON_PW='$(openssl rand -hex 24)'   # or pick your own
+sudo -u postgres psql <<EOF
+CREATE ROLE wifimon LOGIN PASSWORD '$WIFIMON_PW';
+CREATE DATABASE wifimon OWNER wifimon;
+GRANT ALL PRIVILEGES ON DATABASE wifimon TO wifimon;
+EOF
+echo "Save this password: $WIFIMON_PW"
+```
+
+(`deploy/sql/init.sql` is the same thing with placeholders if you'd
+rather edit-then-run.)
+
+### 3. Update `/home/jahama/servers-prod/common-area-looking-glass-conversion/.env`:
 
 ```
 USE_MOCK_DATA=false
-DATABASE_URL=postgresql+asyncpg://wifimon:THE_REAL_PASSWORD@127.0.0.1:5432/wifimon
-EERO_API_TOKEN=...                 # paste from your eero credentials
-PUSHOVER_APP_TOKEN=...              # optional
-PUSHOVER_USER_KEY=...               # optional
+DATABASE_URL=postgresql+asyncpg://wifimon:THE_PASSWORD_FROM_STEP_2@127.0.0.1:5432/wifimon
+EERO_API_TOKEN=...   # copy from /home/jahama/servers-prod/common_area_looking_glass/.env
+PUSHOVER_APP_TOKEN=...   # optional
+PUSHOVER_USER_KEY=...    # optional
 ```
 
-### 3. Apply the schema (as `jahama`):
+The eero token is the same as the legacy app's; copy verbatim.
+
+### 4. Create the empty schema:
 
 ```bash
 cd /home/jahama/servers-prod/common-area-looking-glass-conversion/backend
 PYTHONPATH=. .venv/bin/alembic upgrade head
 ```
 
-### 4. Restart web + start the worker (sudo):
+### 5. Migrate the legacy data:
+
+```bash
+cd /home/jahama/servers-prod/common-area-looking-glass-conversion
+backend/.venv/bin/python deploy/migrate_from_legacy.py
+# Confirm the TRUNCATE prompt with `yes`
+```
+
+The migrator preserves IDs (so `/properties/3` in the new app is the same
+property as in the old app) and resets sequences afterward. Migrated
+users keep their Django pbkdf2 password hashes — `verify_password` knows
+how to read both pbkdf2 and bcrypt, so existing logins still work.
+
+### 6. Restart web + start the worker (sudo):
 
 ```bash
 sudo systemctl restart wifimon-web
@@ -125,20 +162,38 @@ sudo systemctl enable --now wifimon-worker
 sudo systemctl status wifimon-worker --no-pager
 ```
 
-The worker grabs the advisory lock and starts polling on the next 15-minute
-boundary. Use `wifimon` CLI (via `backend/.venv/bin/python -m app.cli.main ...`)
-to seed properties + common areas, OR use the `/admin` page.
+The worker grabs the Postgres advisory lock and starts polling on the
+next 15-minute boundary. Within 15 min the new app should have brand-new
+`network_status` + `connected_device_count` rows alongside the migrated
+history.
 
-### 5. Final shutdown of legacy app
+### 7. Validate side-by-side
 
-Once the new app's data is whole and validated:
+Both apps are now live:
+
+- Legacy: `https://commonwatch.kokocraterlabs.com/`
+- New:    `https://commonplace.kokocraterlabs.com/`
+
+Spot-check that property names, common area device counts, and recent
+outage history line up between the two. Use the new app's `/properties/{id}`
+and `/areas/{network_id}` pages to drill into specific networks and
+compare against the legacy property-detail page.
+
+### 8. Final shutdown of legacy app
+
+Once the new dashboard agrees with the old one and you're confident:
 
 ```bash
 sudo systemctl stop common_area_looking_glass.service
 sudo systemctl disable common_area_looking_glass.service
-# And remove `commonwatch.kokocraterlabs.com` block from /etc/caddy/Caddyfile.
+# Also remove the `commonwatch.kokocraterlabs.com` block from
+# /etc/caddy/Caddyfile, then:
 sudo systemctl reload caddy
 ```
+
+The legacy DB stays put (untouched by the migration; it was a read-only
+copy). Keep it as a backup until you've collected ~7 days of fresh
+polling data on the new app.
 
 ## Troubleshooting
 

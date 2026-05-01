@@ -26,10 +26,13 @@ echo "▸ Installing backend deps"
 "$BACKEND/.venv/bin/pip" install --quiet \
     "fastapi>=0.115" "uvicorn[standard]>=0.32" "pydantic>=2.9" \
     "pydantic-settings>=2.5" "sqlalchemy>=2.0" "alembic>=1.13" \
-    "asyncpg>=0.29" "httpx>=0.27" "structlog>=24.4" "slowapi>=0.1.9" \
+    "asyncpg>=0.29" "psycopg2-binary>=2.9" "httpx>=0.27" \
+    "structlog>=24.4" "slowapi>=0.1.9" \
     "bcrypt>=4" "apscheduler>=3.10" "python-multipart>=0.0.12" \
     "pytz>=2024.1" "itsdangerous>=2" "typer>=0.12" "pyyaml>=6" \
     "reportlab>=4.0" "matplotlib>=3.8" "prometheus_client>=0.20"
+# psycopg2-binary is used only by deploy/migrate_from_legacy.py (one-shot
+# legacy→new DB copier); the runtime app uses asyncpg.
 echo "  backend deps OK"
 
 # ── Frontend build (Next.js standalone) ───────────────────────────────────────
