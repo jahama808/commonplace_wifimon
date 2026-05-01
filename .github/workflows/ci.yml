@@ -1,0 +1,121 @@
+name: CI
+
+# Note: this workflow only consumes `github.ref` (in the concurrency group).
+# No event-supplied strings (issue titles, commit messages, etc.) are passed
+# into `run:` blocks, so there's no shell-injection surface.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same PR/branch — saves runner minutes
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (pytest + integration)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wifimon
+          POSTGRES_PASSWORD: wifimon
+          POSTGRES_DB: wifimon_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wifimon"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install runtime + dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            "fastapi>=0.115" "uvicorn[standard]>=0.32" "pydantic>=2.9" \
+            "pydantic-settings>=2.5" "sqlalchemy>=2.0" "alembic>=1.13" \
+            "asyncpg>=0.29" "aiosqlite>=0.20" "httpx>=0.27" \
+            "structlog>=24.4" "slowapi>=0.1.9" "bcrypt>=4" \
+            "apscheduler>=3.10" "python-multipart>=0.0.12" "pytz>=2024.1" \
+            "itsdangerous>=2" "typer>=0.12" "pyyaml>=6" \
+            "reportlab>=4.0" "matplotlib>=3.8" "prometheus_client>=0.20" \
+            "pytest>=8" "pytest-asyncio>=0.24" "ruff>=0.7"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Run pytest (unit + integration)
+        env:
+          PYTHONPATH: .
+          TEST_DATABASE_URL: postgresql+asyncpg://wifimon:wifimon@localhost:5432/wifimon_test
+        run: pytest -q
+
+      - name: Verify Alembic migration renders for Postgres
+        env:
+          PYTHONPATH: .
+          DATABASE_URL: postgresql+asyncpg://x:y@localhost/wifimon
+        run: |
+          alembic upgrade head --sql > /tmp/render.sql
+          test -s /tmp/render.sql
+          grep -q "^CREATE TABLE alembic_version" /tmp/render.sql
+
+      - name: Verify openapi.snapshot.json is up to date
+        env:
+          PYTHONPATH: .
+        run: |
+          python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2, sort_keys=True))" > /tmp/openapi.fresh.json
+          if ! diff -q openapi.snapshot.json /tmp/openapi.fresh.json > /dev/null; then
+            echo "::error::openapi.snapshot.json is stale."
+            echo "Regenerate with:"
+            echo "  cd backend && python -c 'import json; from app.main import app; print(json.dumps(app.openapi(), indent=2, sort_keys=True))' > openapi.snapshot.json"
+            echo "  cd ../frontend && npm run gen:types"
+            diff openapi.snapshot.json /tmp/openapi.fresh.json | head -80
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Build (Next.js standalone)
+        run: npm run build

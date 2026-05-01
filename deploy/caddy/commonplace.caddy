@@ -1,0 +1,17 @@
+commonplace.kokocraterlabs.com {
+    encode zstd gzip
+
+    # SSE flushing — match before the broader /api/* rule so events stream
+    # event-by-event instead of getting batched at the proxy buffer.
+    @sse path /api/v1/dashboard/stream
+    reverse_proxy @sse 127.0.0.1:8765 {
+        flush_interval -1
+    }
+
+    # API + ops endpoints → FastAPI
+    @backend path /api/* /health /metrics /api/v1/docs /api/v1/openapi.json
+    reverse_proxy @backend 127.0.0.1:8765
+
+    # Everything else → Next.js standalone server
+    reverse_proxy 127.0.0.1:3030
+}

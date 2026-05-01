@@ -1,0 +1,49 @@
+# Site block for the WiFi Common Area Monitor — drop this into your existing
+# host Caddyfile (or `import` it) to route a public domain into the
+# loopback-bound Compose stack.
+#
+# Usage A — paste the block below into /etc/caddy/Caddyfile and replace the
+# site label with your real domain:
+#
+#     mon.example.com {
+#         ... (block below)
+#     }
+#     systemctl reload caddy
+#
+# Usage B — keep this file alongside your existing config and `import` it:
+#
+#     # /etc/caddy/Caddyfile
+#     mon.example.com {
+#         import /path/to/this/repo/Caddyfile.site
+#     }
+#
+# Caddy auto-provisions Let's Encrypt TLS for any real domain in your global
+# config — you don't need to touch certs here. For plain-HTTP local testing,
+# use `:8080` or `http://localhost:8080` as the site label.
+
+encode zstd gzip
+
+header {
+	Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	X-Content-Type-Options    "nosniff"
+	X-Frame-Options           "DENY"
+	Referrer-Policy           "strict-origin-when-cross-origin"
+	-Server
+}
+
+# Upstream ports — see docker-compose.yml. They're chosen to NOT collide
+# with this host's existing apps (the old MDULookingGlass on :8000, etc.)
+# so the new app and the legacy app can run side-by-side during cutover.
+
+# SSE: per-event flush, no buffering. Match before the broader /api/* rule.
+@sse path /api/v1/dashboard/stream
+reverse_proxy @sse 127.0.0.1:8765 {
+	flush_interval -1
+}
+
+# Backend: API + ops endpoints
+@backend path /api/* /health /metrics /docs /openapi.json
+reverse_proxy @backend 127.0.0.1:8765
+
+# Everything else → Next.js frontend
+reverse_proxy 127.0.0.1:3030

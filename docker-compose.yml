@@ -1,0 +1,117 @@
+# SPEC §11 — Docker Compose brings up `db`, `web`, `worker`, `frontend`.
+#
+# This stack expects an existing host-level reverse proxy (Caddy, nginx, etc.)
+# to terminate TLS and route the public domain into it. The two app tiers
+# bind to the host's loopback only on ports chosen to NOT collide with this
+# host's existing apps (the old MDULookingGlass Django service is on :8000,
+# host Postgres on :5432, etc.):
+#
+#   web      → 127.0.0.1:8765   (FastAPI — /api/*, /health, /metrics)
+#   frontend → 127.0.0.1:3030   (Next.js — everything else)
+#
+# Drop `Caddyfile.site` into your existing Caddy config (or `import` it) to
+# wire up routing.
+#
+# Start everything:
+#   docker compose up --build
+#
+# `migrate` runs once on each `up` (alembic upgrade head); web + worker
+# wait for it to exit successfully before starting.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wifimon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wifimon}
+      POSTGRES_DB: ${POSTGRES_DB:-wifimon}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No host binding — the host already runs Postgres on :5432 and we don't
+    # need direct psql access from the host. Reach this DB via:
+    #   docker compose exec db psql -U "$POSTGRES_USER" "$POSTGRES_DB"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wifimon}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wifimon}:${POSTGRES_PASSWORD:-wifimon}@db:5432/${POSTGRES_DB:-wifimon}
+      LOG_FORMAT: json
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  web:
+    build:
+      context: ./backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wifimon}:${POSTGRES_PASSWORD:-wifimon}@db:5432/${POSTGRES_DB:-wifimon}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-prod}
+      # The host Caddy fronts both tiers under a single origin, so the only
+      # place CORS matters is direct-access debugging from localhost.
+      ALLOWED_ORIGINS: "http://localhost,https://${DOMAIN:-localhost}"
+      USE_MOCK_DATA: "false"
+      LOG_FORMAT: json
+      # Mark the session cookie Secure once you're behind HTTPS in prod.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      EERO_API_TOKEN: ${EERO_API_TOKEN:-}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      PUSHOVER_USER_KEY: ${PUSHOVER_USER_KEY:-}
+    # Loopback bind on :8765 — NOT :8000 because the old MDULookingGlass
+    # Django app is already on 127.0.0.1:8000. Reachable from the host's
+    # Caddy at 127.0.0.1:8765, not from the public network.
+    ports:
+      - "127.0.0.1:8765:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    build:
+      context: ./backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wifimon}:${POSTGRES_PASSWORD:-wifimon}@db:5432/${POSTGRES_DB:-wifimon}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-prod}
+      USE_MOCK_DATA: "false"
+      LOG_FORMAT: json
+      EERO_API_TOKEN: ${EERO_API_TOKEN:-}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      PUSHOVER_USER_KEY: ${PUSHOVER_USER_KEY:-}
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      # Used by the Next.js dev rewrite when running `npm run dev` directly.
+      # In Compose mode the host Caddy short-circuits `/api/*` to web, so the
+      # rewrite is dead code — set anyway so isolated `docker compose run
+      # frontend` requests still work.
+      API_BASE_URL: http://web:8000
+      NODE_ENV: production
+    # Loopback bind on :3030 — keeps :3000 free for ad-hoc `npm run dev`
+    # work elsewhere on this host. Reachable from the host's Caddy.
+    ports:
+      - "127.0.0.1:3030:3000"
+
+volumes:
+  pgdata:

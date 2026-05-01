@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts.bak
+.eslintcache
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local archives
+common\ area\ monitor.zip
+
+# Logs / runtime
+*.log
+*.pid
+
+# Claude Code internals
+.claude/

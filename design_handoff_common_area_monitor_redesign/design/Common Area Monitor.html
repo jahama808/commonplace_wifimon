@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Common Area Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--bg-0); }
+    body { font-family: 'Inter', system-ui, sans-serif; color: var(--text-0); }
+    .dash-root[data-screen-label] { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root" class="dash-root" data-screen-label="01 Atrium · Common Area Monitor"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="atrium.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accent": "cyan",
+      "density": "comfortable",
+      "theme": "dark",
+      "glow": 1
+    }/*EDITMODE-END*/;
+
+    const ACCENT_HUES = {
+      cyan:   { hue: 195, gold: 85  },
+      green:  { hue: 152, gold: 75  },
+      coral:  { hue: 30,  gold: 195 },
+      indigo: { hue: 270, gold: 70  },
+    };
+
+    function App() {
+      const [tweaks, setTweak] = window.useTweaks(TWEAK_DEFAULTS);
+
+      React.useEffect(() => {
+        const root = document.documentElement;
+        const a = ACCENT_HUES[tweaks.accent] || ACCENT_HUES.cyan;
+        root.style.setProperty('--accent', `oklch(0.78 0.13 ${a.hue})`);
+        root.style.setProperty('--accent-soft', `oklch(0.78 0.13 ${a.hue} / 0.16)`);
+        root.style.setProperty('--accent-line', `oklch(0.78 0.13 ${a.hue} / 0.35)`);
+        root.style.setProperty('--gold', `oklch(0.80 0.12 ${a.gold})`);
+        root.style.setProperty('--density', tweaks.density === 'compact' ? '0.78' : '1');
+        root.style.setProperty('--glow', String(tweaks.glow));
+        root.setAttribute('data-theme', tweaks.theme);
+      }, [tweaks]);
+
+      const { TweaksPanel, TweakSection, TweakRadio, TweakSlider } = window;
+
+      return (
+        <>
+          <window.Atrium />
+          <TweaksPanel>
+            <TweakSection label="Accent" />
+            <TweakRadio label="Color" value={tweaks.accent}
+              onChange={(v) => setTweak('accent', v)}
+              options={[
+                { value: 'cyan', label: 'Cyan' },
+                { value: 'green', label: 'Emerald' },
+                { value: 'coral', label: 'Coral' },
+                { value: 'indigo', label: 'Indigo' },
+              ]} />
+            <TweakSection label="Layout" />
+            <TweakRadio label="Density" value={tweaks.density}
+              onChange={(v) => setTweak('density', v)}
+              options={[
+                { value: 'comfortable', label: 'Comfy' },
+                { value: 'compact', label: 'Compact' },
+              ]} />
+            <TweakRadio label="Theme" value={tweaks.theme}
+              onChange={(v) => setTweak('theme', v)}
+              options={[
+                { value: 'dark', label: 'Dark' },
+                { value: 'light', label: 'Light' },
+              ]} />
+            <TweakSection label="Glow" />
+            <TweakSlider label="Intensity"
+              min={0} max={1.5} step={0.1}
+              value={tweaks.glow}
+              onChange={(v) => setTweak('glow', v)} />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

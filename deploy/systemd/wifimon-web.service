@@ -1,0 +1,38 @@
+[Unit]
+Description=WiFi Common Area Monitor — FastAPI web tier
+Documentation=https://github.com/anthropics/anthropic
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=jahama
+Group=jahama
+WorkingDirectory=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend
+Environment=PYTHONPATH=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend
+EnvironmentFile=/home/jahama/servers-prod/common-area-looking-glass-conversion/.env
+ExecStart=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend/.venv/bin/uvicorn \
+    app.main:app \
+    --host 127.0.0.1 \
+    --port 8765 \
+    --workers 2 \
+    --proxy-headers \
+    --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/jahama/servers-prod/common-area-looking-glass-conversion
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

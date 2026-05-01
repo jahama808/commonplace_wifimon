@@ -1,0 +1,37 @@
+# Example seed file for `wifimon import`.
+#
+# Usage:
+#   wifimon import --file seeds/properties.example.yaml         # dry-run, prints diff
+#   wifimon import --file seeds/properties.example.yaml --apply # commits
+#   wifimon import --file seeds/properties.example.yaml --apply --allow-deletes
+#
+# Identity:
+#   • Property is keyed by `name` (must be unique)
+#   • CommonArea is keyed by `network_id` (globally unique)
+#
+# Re-running an unchanged file produces a zero-op plan.
+
+properties:
+  - name: Aston Kaanapali Shores
+    address: 45 Kai Ala Dr, Lahaina, HI 96761
+    island: maui
+    olt_cllis: [LHNAHIXAOLT01]
+    common_areas:
+      - location_name: Lobby / Front Desk
+        location_type: indoor
+        network_id: "6422927"
+      - location_name: Pool / Bar
+        location_type: outdoor
+        network_id: "6422928"
+
+  - name: Park Lane
+    address: 1388 Ala Moana Blvd, Honolulu, HI 96814
+    island: oahu
+    olt_cllis: [HNLLHIXAOLT01]
+    common_areas:
+      - location_name: Lobby
+        location_type: indoor
+        network_id: "PRK-001"
+      - location_name: Parking Garage / BBQ Area
+        location_type: outdoor
+        network_id: "PRK-002"

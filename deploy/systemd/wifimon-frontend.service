@@ -1,0 +1,37 @@
+[Unit]
+Description=WiFi Common Area Monitor — Next.js standalone frontend
+Documentation=https://github.com/anthropics/anthropic
+After=network-online.target wifimon-web.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=jahama
+Group=jahama
+WorkingDirectory=/home/jahama/servers-prod/common-area-looking-glass-conversion/frontend/.next/standalone
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+Environment=PORT=3030
+Environment=HOSTNAME=127.0.0.1
+# Caddy short-circuits /api/* directly to the FastAPI tier, so the Next
+# rewrite proxy below is dead code in this deployment. Set anyway so
+# `node server.js` started in isolation still works during debugging.
+Environment=API_BASE_URL=http://127.0.0.1:8765
+ExecStart=/home/jahama/.nvm/versions/node/v22.22.2/bin/node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/jahama/servers-prod/common-area-looking-glass-conversion
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# Match what we want OUT of the image
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Tests don't need to ship in the runtime image (the CI image, if any,
+# would build a separate target).
+tests/

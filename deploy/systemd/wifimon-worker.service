@@ -1,0 +1,37 @@
+[Unit]
+Description=WiFi Common Area Monitor — polling worker (APScheduler)
+Documentation=https://github.com/anthropics/anthropic
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+# This unit is intentionally NOT enabled by default. In mock mode the
+# worker has nothing useful to do, and on startup it'll try to grab a
+# Postgres advisory lock against the configured DATABASE_URL — without a
+# real DB it'll log and exit. Enable it after you flip USE_MOCK_DATA=false
+# and provision the wifimon role + database (see deploy/sql/init.sql).
+
+[Service]
+Type=exec
+User=jahama
+Group=jahama
+WorkingDirectory=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend
+Environment=PYTHONPATH=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend
+EnvironmentFile=/home/jahama/servers-prod/common-area-looking-glass-conversion/.env
+ExecStart=/home/jahama/servers-prod/common-area-looking-glass-conversion/backend/.venv/bin/python -m app.worker
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/jahama/servers-prod/common-area-looking-glass-conversion
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
