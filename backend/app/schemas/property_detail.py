@@ -30,6 +30,18 @@ class DeviceRow(BaseModel):
     location_type: Literal["indoor", "outdoor"] | None = None
 
 
+class MduOltInfo(BaseModel):
+    """Populated when the property's name matches an entry in the uploaded
+    MDU↔OLT map (admin → MDU Map upload)."""
+
+    mdu_name: str
+    fdh_name: str | None = None
+    olt_clli: str | None = None  # equip_name in the source spreadsheet
+    olt_type: str | None = None  # serving_olt
+    seven_fifty: str | None = None  # equip_name_1
+    seven_fifty_model: str | None = None  # equip_model
+
+
 class PropertyDetailResponse(BaseModel):
     id: str
     name: str
@@ -50,3 +62,5 @@ class PropertyDetailResponse(BaseModel):
     chart: DeviceCountsResponse  # 24h mini
     networks: list[NetworkRow]
     devices: list[DeviceRow]
+
+    mdu_olt: MduOltInfo | None = None

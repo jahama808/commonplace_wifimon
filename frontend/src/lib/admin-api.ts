@@ -16,6 +16,8 @@ import type {
   MaintenanceCreate,
   MaintenanceOut,
   MaintenanceUpdate,
+  MduOltMapOut,
+  MduOltMapUploadResponse,
   PropertyCreate,
   PropertyOut,
   PropertyUpdate,
@@ -97,4 +99,31 @@ export const adminApi = {
     call<MaintenanceOut>('PUT', `/admin/maintenance/${id}`, body),
   deleteMaintenance: (id: number) =>
     call<void>('DELETE', `/admin/maintenance/${id}`),
+
+  // MDU↔OLT map
+  listMduOltMap: () => call<MduOltMapOut[]>('GET', '/admin/mdu-olt-map'),
+  listMduOltMapNames: () =>
+    call<string[]>('GET', '/admin/mdu-olt-map/names'),
+  uploadMduOltMap: async (file: File): Promise<MduOltMapUploadResponse> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/v1/admin/mdu-olt-map/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* non-JSON */
+    }
+    if (!res.ok) {
+      const detail =
+        data && typeof data === 'object' && 'detail' in data
+          ? String((data as { detail: unknown }).detail)
+          : `upload failed: ${res.status}`;
+      throw new Error(detail);
+    }
+    return data as MduOltMapUploadResponse;
+  },
 };

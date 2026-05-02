@@ -9,10 +9,11 @@ import { cn } from '@/lib/cn';
 import type {
   AreaPreviewResponse,
   ClliOut,
+  MduOltMapOut,
   PropertyOut,
 } from '@/types/api';
 
-type Tab = 'properties' | 'clli' | 'maintenance';
+type Tab = 'properties' | 'clli' | 'maintenance' | 'mdu-map';
 
 export function AdminClient() {
   const [tab, setTab] = useState<Tab>('properties');
@@ -39,6 +40,7 @@ export function AdminClient() {
         {tab === 'properties' && <PropertiesTab />}
         {tab === 'clli' && <ClliTab />}
         {tab === 'maintenance' && <MaintenanceTab />}
+        {tab === 'mdu-map' && <MduMapTab />}
       </main>
     </div>
   );
@@ -55,6 +57,7 @@ function Tabs({
     { key: 'properties', label: 'Properties', sub: 'Add / edit / common areas' },
     { key: 'clli', label: 'CLLI Library', sub: 'OLT + 7×50 codes' },
     { key: 'maintenance', label: 'Maintenance', sub: 'Scheduled windows' },
+    { key: 'mdu-map', label: 'MDU Map', sub: 'Upload .xlsx · OLT lookup' },
   ];
   return (
     <div className="mb-5 flex flex-wrap gap-2 border-b border-line">
@@ -211,6 +214,13 @@ function NewPropertyCard() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  // Pull MDU names so the input doubles as an autocomplete; the user can
+  // pick a known MDU or type a free-form name.
+  const mduNames = useQuery({
+    queryKey: ['admin', 'mdu-olt-map', 'names'],
+    queryFn: () => adminApi.listMduOltMapNames(),
+    staleTime: 5 * 60_000,
+  });
   const create = useMutation({
     mutationFn: () =>
       adminApi.createProperty({ name, address: address || null }),
@@ -220,6 +230,10 @@ function NewPropertyCard() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
     },
   });
+  const matched =
+    name.trim() && (mduNames.data ?? []).some(
+      (n) => n.toLowerCase() === name.trim().toLowerCase(),
+    );
   return (
     <form
       onSubmit={(e) => {
@@ -232,7 +246,37 @@ function NewPropertyCard() {
         <Plus size={14} className="text-accent" aria-hidden />
         <h3 className="text-[14px] font-semibold">Add Property</h3>
       </div>
-      <FormField id="np-name" label="Name" value={name} onChange={setName} required />
+      <label htmlFor="np-name" className="flex flex-col gap-1">
+        <span
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          NAME
+        </span>
+        <input
+          id="np-name"
+          type="text"
+          list="np-name-options"
+          value={name}
+          required
+          autoComplete="off"
+          placeholder="Pick from MDU list or type a custom name…"
+          onChange={(e) => setName(e.target.value)}
+          className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+        />
+        <datalist id="np-name-options">
+          {(mduNames.data ?? []).map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+        <span className="mono text-[10px] text-text-3" style={{ letterSpacing: '0.08em' }}>
+          {mduNames.isLoading
+            ? 'LOADING MDU LIST…'
+            : matched
+              ? `✓ MATCHES MDU MAP — OLT INFO WILL APPEAR ON DETAIL PAGE`
+              : `${mduNames.data?.length ?? 0} MDU NAMES AVAILABLE`}
+        </span>
+      </label>
       <FormField id="np-addr" label="Address" value={address} onChange={setAddress} />
       {create.error && (
         <div role="alert" className="mt-3 rounded-m border border-bad bg-bad-soft px-3 py-2 text-[12px] text-text-1">
@@ -774,5 +818,209 @@ function FormField({
         )}
       />
     </label>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MDU↔OLT map tab
+// ──────────────────────────────────────────────────────────────────────────────
+
+function MduMapTab() {
+  const queryClient = useQueryClient();
+  const rows = useQuery({
+    queryKey: ['admin', 'mdu-olt-map'],
+    queryFn: () => adminApi.listMduOltMap(),
+  });
+  const [filter, setFilter] = useState('');
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+
+  const upload = useMutation({
+    mutationFn: (file: File) => adminApi.uploadMduOltMap(file),
+    onSuccess: (data) => {
+      setLastUpload(`Imported ${data.rows_imported} rows · ${data.distinct_mdus} distinct MDUs`);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mdu-olt-map'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'mdu-olt-map', 'names'] });
+    },
+  });
+
+  const visible = (rows.data ?? []).filter((r) => {
+    if (!filter.trim()) return true;
+    const q = filter.trim().toLowerCase();
+    return (
+      r.mdu_name.toLowerCase().includes(q) ||
+      (r.equip_name?.toLowerCase().includes(q) ?? false) ||
+      (r.serving_olt?.toLowerCase().includes(q) ?? false) ||
+      (r.fdh_name?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="lg:col-span-2 space-y-4">
+        <MduTable
+          rows={visible}
+          totalRows={rows.data?.length ?? 0}
+          loading={rows.isLoading}
+          error={rows.error as Error | null}
+          filter={filter}
+          onFilter={setFilter}
+        />
+      </div>
+      <div className="space-y-4">
+        <MduUploadCard
+          uploading={upload.isPending}
+          error={upload.error as Error | null}
+          status={lastUpload}
+          onPick={(f) => upload.mutate(f)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MduTable({
+  rows,
+  totalRows,
+  loading,
+  error,
+  filter,
+  onFilter,
+}: {
+  rows: MduOltMapOut[];
+  totalRows: number;
+  loading: boolean;
+  error: Error | null;
+  filter: string;
+  onFilter: (s: string) => void;
+}) {
+  const distinctMdus = new Set(rows.map((r) => r.mdu_name)).size;
+  return (
+    <div className="card flex flex-col">
+      <div className="card-hd flex flex-wrap items-center justify-between gap-3 border-b border-line">
+        <div>
+          <h3>MDU ↔ OLT Map</h3>
+          <div className="sub">
+            {loading
+              ? '…'
+              : `${rows.length} ROWS · ${distinctMdus} DISTINCT MDUS${
+                  filter ? ` · FILTERED FROM ${totalRows}` : ''
+                }`}
+          </div>
+        </div>
+        <input
+          type="search"
+          value={filter}
+          onChange={(e) => onFilter(e.target.value)}
+          placeholder="Filter by name, OLT, FDH…"
+          className="rounded-full border border-line bg-bg-1 px-3 py-1.5 text-[12px] text-text-0 outline-none focus:border-accent"
+        />
+      </div>
+      <div className="overflow-x-auto">
+        {loading && (
+          <div className="px-5 py-8 text-center text-[13px] text-text-3">Loading…</div>
+        )}
+        {error && !loading && (
+          <div className="px-5 py-3 text-[13px] text-bad">{error.message}</div>
+        )}
+        {!loading && !error && rows.length === 0 && (
+          <div className="px-5 py-8 text-center text-[13px] text-text-3">
+            {totalRows === 0
+              ? 'No MDU map uploaded yet. Use the panel on the right to upload one.'
+              : 'No rows match this filter.'}
+          </div>
+        )}
+        {!loading && rows.length > 0 && (
+          <table className="w-full text-[12.5px]">
+            <thead>
+              <tr className="text-left text-text-3">
+                <th className="px-4 py-2 font-semibold">MDU</th>
+                <th className="px-4 py-2 font-semibold">FDH</th>
+                <th className="px-4 py-2 font-semibold">OLT (CLLI)</th>
+                <th className="px-4 py-2 font-semibold">OLT type</th>
+                <th className="px-4 py-2 font-semibold">7×50</th>
+                <th className="px-4 py-2 font-semibold">7×50 model</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((r) => (
+                <tr key={r.id} className="text-text-1">
+                  <td className="px-4 py-2 font-medium text-text-0">{r.mdu_name}</td>
+                  <td className="mono px-4 py-2">{r.fdh_name ?? '—'}</td>
+                  <td className="mono px-4 py-2">{r.equip_name ?? '—'}</td>
+                  <td className="px-4 py-2">{r.serving_olt ?? '—'}</td>
+                  <td className="mono px-4 py-2">{r.equip_name_1 ?? '—'}</td>
+                  <td className="px-4 py-2">{r.equip_model ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MduUploadCard({
+  uploading,
+  error,
+  status,
+  onPick,
+}: {
+  uploading: boolean;
+  error: Error | null;
+  status: string | null;
+  onPick: (f: File) => void;
+}) {
+  return (
+    <div className="card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Plus size={14} className="text-accent" aria-hidden />
+        <h3 className="text-[14px] font-semibold">Upload MDU Map</h3>
+      </div>
+      <p className="text-[12px] text-text-2">
+        Upload the vendor&apos;s MDU↔OLT export (.xlsx). The full table is replaced
+        on each upload — partial merges aren&apos;t supported. The MDU name is
+        extracted from the SAG column.
+      </p>
+      <label
+        htmlFor="mdu-upload"
+        className={cn(
+          'mono mt-4 flex cursor-pointer items-center justify-center rounded-m border border-dashed border-line-strong bg-bg-1 px-3 py-6 text-center text-[12px] text-text-2 transition-colors hover:bg-bg-2',
+          uploading && 'pointer-events-none opacity-60',
+        )}
+        style={{ letterSpacing: '0.08em' }}
+      >
+        {uploading ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 size={14} className="animate-spin" /> UPLOADING…
+          </span>
+        ) : (
+          'CLICK TO PICK A .XLSX FILE'
+        )}
+      </label>
+      <input
+        id="mdu-upload"
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="hidden"
+        disabled={uploading}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPick(f);
+          e.target.value = '';
+        }}
+      />
+      {status && (
+        <div className="mt-3 rounded-m border border-line bg-bg-2 px-3 py-2 text-[12px] text-text-1">
+          {status}
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="mt-3 rounded-m border border-bad bg-bad-soft px-3 py-2 text-[12px] text-text-1">
+          {error.message}
+        </div>
+      )}
+    </div>
   );
 }

@@ -115,3 +115,23 @@ class GrantOut(BaseModel):
     user_id: int
     property_id: int
     created_at: datetime
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MDU↔OLT map
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class MduOltMapOut(BaseModel):
+    id: int
+    mdu_name: str
+    fdh_name: str | None = None
+    equip_name: str | None = None
+    serving_olt: str | None = None
+    equip_name_1: str | None = None
+    equip_model: str | None = None
+
+
+class MduOltMapUploadResponse(BaseModel):
+    rows_imported: int
+    distinct_mdus: int

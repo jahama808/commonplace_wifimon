@@ -1,30 +1,1557 @@
 {
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Common Area Monitor API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/maintenance": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Active future scheduled maintenance windows + affected properties",
+        "description": "SPEC \u00a75.4 \u2014 feeds the dashboard's \"Scheduled Maintenance\" card.",
+        "operationId": "get_maintenance_api_v1_maintenance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {},
+                  "type": "array",
+                  "title": "Response Get Maintenance Api V1 Maintenance Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Global search across properties, common areas, and network IDs",
+        "description": "SPEC \u00a75.4 / \u00a78.3 \u2014 global search bar in the header / Cmd+K palette.",
+        "operationId": "get_search_api_v1_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/stream": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Server-Sent Events stream of dashboard invalidations (SPEC \u00a75.4)",
+        "description": "Long-lived SSE connection. Emits:\n\n  \u2022 `hello`              \u2014 handshake on connect\n  \u2022 `dashboard.invalidate` \u2014 client should re-fetch `/api/v1/dashboard`\n  \u2022 `:heartbeat` comments  \u2014 keep-alives so proxies don't time out\n\nFalls back to 30s polling on the client if the connection drops.",
+        "operationId": "get_dashboard_stream_api_v1_dashboard_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Dashboard",
+        "description": "Per-user filtered dashboard.\n\nMock path returns the full set (dev convenience). Real path filters\nproperties to those the caller has access to.",
+        "operationId": "get_dashboard_api_v1_dashboard_get",
+        "parameters": [
+          {
+            "name": "island",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Island"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "ssid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ssid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{property_id}/device-counts": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Connected-devices time series for stacked-area chart",
+        "description": "Critical, must-retain feature (SPEC \u00a73 / README backend contract).\n\n`ssid` omitted \u2192 totals (canonical `ssid=\"\"` rows in `connected_device_count`).\n`ssid` present \u2192 filtered series. Same timestamps drive both views.",
+        "operationId": "get_device_counts_api_v1_properties__property_id__device_counts_get",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Property Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 1,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "ssid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ssid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceCountsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{property_id}/ssids": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Distinct SSIDs seen for this property in the window",
+        "description": "SPEC \u00a77 \u2014 feeds the SSID dropdown on the Property Detail page.",
+        "operationId": "get_property_ssids_api_v1_properties__property_id__ssids_get",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Property Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Property Ssids Api V1 Properties  Property Id  Ssids Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{property_id}": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Property detail (drives the dashboard drawer)",
+        "description": "Property detail.\n\nMock path uses string IDs (\"aks\", \"prk\", \u2026) so we can't pre-validate\nvia `require_property_access` (which expects int). The DB path enforces\nper-property access inline.",
+        "operationId": "get_property_api_v1_properties__property_id__get",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Property Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{property_id}/report": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Generate a PDF WiFi network report for the property (SPEC \u00a75.7)",
+        "description": "`POST /api/v1/properties/{id}/report` `{ssids: [...]}` \u2192 streams PDF.\n\nEmpty `ssids` means \"include all\" (matches the current Django app).",
+        "operationId": "post_property_report_api_v1_properties__property_id__report_post",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Property Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/areas/{area_id}": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Common-area detail (SPEC \u00a75.6)",
+        "description": "`area_id` is the network_id (e.g. `AKS-001`). Mock-mode short-circuits;\nreal-mode enforces per-property access via the parent property.",
+        "operationId": "get_area_api_v1_areas__area_id__get",
+        "parameters": [
+          {
+            "name": "area_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Area Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AreaDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/areas/{area_id}/check": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Force-check this network now (bypasses 1-hour rate limit)",
+        "description": "Hits eero `/network`, `/eeros`, `/devices` for this single area.\nUpdates cached state, writes a NetworkStatus row, refreshes EeroDevice\nrows, writes ConnectedDeviceCount rows. Returns the post-call state.",
+        "operationId": "post_area_check_api_v1_areas__area_id__check_post",
+        "parameters": [
+          {
+            "name": "area_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Area Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Post Area Check Api V1 Areas  Area Id  Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/properties/{property_id}/check": {
+      "post": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Force-check every network in this property now",
+        "description": "Iterates all common areas under the property and runs the full\nrefresh on each. Returns aggregate counts.",
+        "operationId": "post_property_check_api_v1_properties__property_id__check_post",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Property Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Post Property Check Api V1 Properties  Property Id  Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/properties": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Properties",
+        "operationId": "list_properties_api_v1_admin_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropertyOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Properties Api V1 Admin Properties Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Property",
+        "operationId": "create_property_api_v1_admin_properties_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/properties/{property_id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Property",
+        "operationId": "update_property_api_v1_admin_properties__property_id__put",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Property Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Property",
+        "operationId": "delete_property_api_v1_admin_properties__property_id__delete",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Property Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/properties/{property_id}/areas": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Common Areas",
+        "operationId": "list_common_areas_api_v1_admin_properties__property_id__areas_get",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Property Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommonAreaOut"
+                  },
+                  "title": "Response List Common Areas Api V1 Admin Properties  Property Id  Areas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Common Area",
+        "operationId": "create_common_area_api_v1_admin_properties__property_id__areas_post",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Property Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonAreaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonAreaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/areas/{area_id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Common Area",
+        "operationId": "update_common_area_api_v1_admin_areas__area_id__put",
+        "parameters": [
+          {
+            "name": "area_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Area Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonAreaUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonAreaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Common Area",
+        "operationId": "delete_common_area_api_v1_admin_areas__area_id__delete",
+        "parameters": [
+          {
+            "name": "area_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Area Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/areas/preview": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Preview Area",
+        "description": "SPEC \u00a76.1 \u2014 live eero validation. Operator confirms the network_id\n+ name + eero count before saving.",
+        "operationId": "preview_area_api_v1_admin_areas_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AreaPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AreaPreviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/access": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Grant Access",
+        "operationId": "grant_access_api_v1_admin_access_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Revoke Access",
+        "operationId": "revoke_access_api_v1_admin_access_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/clli/olt": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Olt Cllis",
+        "operationId": "list_olt_cllis_api_v1_admin_clli_olt_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClliOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Olt Cllis Api V1 Admin Clli Olt Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Olt Clli",
+        "operationId": "create_olt_clli_api_v1_admin_clli_olt_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClliCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClliOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/clli/olt/{clli_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Olt Clli",
+        "operationId": "delete_olt_clli_api_v1_admin_clli_olt__clli_id__delete",
+        "parameters": [
+          {
+            "name": "clli_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Clli Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/clli/seven-fifty": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Seven Fifty Cllis",
+        "operationId": "list_seven_fifty_cllis_api_v1_admin_clli_seven_fifty_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClliOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Seven Fifty Cllis Api V1 Admin Clli Seven Fifty Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Seven Fifty Clli",
+        "operationId": "create_seven_fifty_clli_api_v1_admin_clli_seven_fifty_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClliCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClliOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/clli/seven-fifty/{clli_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Seven Fifty Clli",
+        "operationId": "delete_seven_fifty_clli_api_v1_admin_clli_seven_fifty__clli_id__delete",
+        "parameters": [
+          {
+            "name": "clli_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Clli Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/maintenance": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Maintenance",
+        "operationId": "create_maintenance_api_v1_admin_maintenance_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/maintenance/{m_id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update Maintenance",
+        "operationId": "update_maintenance_api_v1_admin_maintenance__m_id__put",
+        "parameters": [
+          {
+            "name": "m_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "M Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete Maintenance",
+        "operationId": "delete_maintenance_api_v1_admin_maintenance__m_id__delete",
+        "parameters": [
+          {
+            "name": "m_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "M Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mdu-olt-map": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Mdu Olt Map",
+        "operationId": "list_mdu_olt_map_api_v1_admin_mdu_olt_map_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MduOltMapOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Mdu Olt Map Api V1 Admin Mdu Olt Map Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mdu-olt-map/names": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Mdu Olt Map Names",
+        "description": "Distinct MDU names \u2014 drives the autocomplete on Add Property.",
+        "operationId": "list_mdu_olt_map_names_api_v1_admin_mdu_olt_map_names_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response List Mdu Olt Map Names Api V1 Admin Mdu Olt Map Names Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mdu-olt-map/upload": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Upload Mdu Olt Map",
+        "description": "Replace the entire MDU\u2194OLT map with the contents of an uploaded\n.xlsx (the SAG/FDH/EQUIP/SERVING_OLT export). The spreadsheet is the\nsource of truth \u2014 partial merges aren't supported.",
+        "operationId": "upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MduOltMapUploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {
       "AffectedPropertyOut": {
         "properties": {
           "id": {
-            "title": "Id",
-            "type": "integer"
+            "type": "integer",
+            "title": "Id"
           },
           "name": {
-            "title": "Name",
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "name"
         ],
-        "title": "AffectedPropertyOut",
-        "type": "object"
+        "title": "AffectedPropertyOut"
       },
       "AlertItem": {
         "properties": {
-          "acknowledged": {
-            "default": false,
-            "title": "Acknowledged",
-            "type": "boolean"
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "warning",
+              "info"
+            ],
+            "title": "Severity"
+          },
+          "time": {
+            "type": "string",
+            "title": "Time"
+          },
+          "property": {
+            "type": "string",
+            "title": "Property"
+          },
+          "network": {
+            "type": "string",
+            "title": "Network"
           },
           "device": {
             "anyOf": [
@@ -37,36 +1564,17 @@
             ],
             "title": "Device"
           },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
           "message": {
-            "title": "Message",
-            "type": "string"
+            "type": "string",
+            "title": "Message"
           },
-          "network": {
-            "title": "Network",
-            "type": "string"
-          },
-          "property": {
-            "title": "Property",
-            "type": "string"
-          },
-          "severity": {
-            "enum": [
-              "critical",
-              "warning",
-              "info"
-            ],
-            "title": "Severity",
-            "type": "string"
-          },
-          "time": {
-            "title": "Time",
-            "type": "string"
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged",
+            "default": false
           }
         },
+        "type": "object",
         "required": [
           "id",
           "severity",
@@ -75,71 +1583,21 @@
           "network",
           "message"
         ],
-        "title": "AlertItem",
-        "type": "object"
+        "title": "AlertItem"
       },
       "AreaDetailResponse": {
         "properties": {
-          "connected_total": {
-            "title": "Connected Total",
-            "type": "integer"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "eero_units": {
-            "items": {
-              "$ref": "#/components/schemas/EeroUnitRow"
-            },
-            "title": "Eero Units",
-            "type": "array"
-          },
           "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "insight_url": {
-            "title": "Insight Url",
-            "type": "string"
-          },
-          "is_online": {
-            "title": "Is Online",
-            "type": "boolean"
-          },
-          "last_checked": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Checked"
-          },
-          "location_name": {
-            "title": "Location Name",
-            "type": "string"
-          },
-          "location_type": {
-            "enum": [
-              "indoor",
-              "outdoor"
-            ],
-            "title": "Location Type",
-            "type": "string"
+            "type": "string",
+            "title": "Id"
           },
           "network_id": {
-            "title": "Network Id",
-            "type": "string"
+            "type": "string",
+            "title": "Network Id"
+          },
+          "location_name": {
+            "type": "string",
+            "title": "Location Name"
           },
           "network_name": {
             "anyOf": [
@@ -152,14 +1610,6 @@
             ],
             "title": "Network Name"
           },
-          "property_id": {
-            "title": "Property Id",
-            "type": "string"
-          },
-          "property_name": {
-            "title": "Property Name",
-            "type": "string"
-          },
           "ssid": {
             "anyOf": [
               {
@@ -171,22 +1621,6 @@
             ],
             "title": "Ssid"
           },
-          "status": {
-            "enum": [
-              "online",
-              "degraded",
-              "offline"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "status_history": {
-            "items": {
-              "$ref": "#/components/schemas/StatusHistoryPoint"
-            },
-            "title": "Status History",
-            "type": "array"
-          },
           "wan_ip": {
             "anyOf": [
               {
@@ -197,8 +1631,82 @@
               }
             ],
             "title": "Wan Ip"
+          },
+          "location_type": {
+            "type": "string",
+            "enum": [
+              "indoor",
+              "outdoor"
+            ],
+            "title": "Location Type"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "is_online": {
+            "type": "boolean",
+            "title": "Is Online"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "degraded",
+              "offline"
+            ],
+            "title": "Status"
+          },
+          "last_checked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checked"
+          },
+          "property_id": {
+            "type": "string",
+            "title": "Property Id"
+          },
+          "property_name": {
+            "type": "string",
+            "title": "Property Name"
+          },
+          "insight_url": {
+            "type": "string",
+            "title": "Insight Url"
+          },
+          "eero_units": {
+            "items": {
+              "$ref": "#/components/schemas/EeroUnitRow"
+            },
+            "type": "array",
+            "title": "Eero Units"
+          },
+          "connected_total": {
+            "type": "integer",
+            "title": "Connected Total"
+          },
+          "status_history": {
+            "items": {
+              "$ref": "#/components/schemas/StatusHistoryPoint"
+            },
+            "type": "array",
+            "title": "Status History"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "network_id",
@@ -213,11 +1721,16 @@
           "connected_total",
           "status_history"
         ],
-        "title": "AreaDetailResponse",
-        "type": "object"
+        "title": "AreaDetailResponse"
       },
       "AreaPreviewRequest": {
         "properties": {
+          "network_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Network Id"
+          },
           "api_endpoint": {
             "anyOf": [
               {
@@ -228,27 +1741,62 @@
               }
             ],
             "title": "Api Endpoint"
-          },
-          "network_id": {
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Network Id",
-            "type": "string"
           }
         },
+        "type": "object",
         "required": [
           "network_id"
         ],
-        "title": "AreaPreviewRequest",
-        "type": "object"
+        "title": "AreaPreviewRequest"
       },
       "AreaPreviewResponse": {
-        "description": "Returned by `POST /api/v1/admin/areas/preview`.\n\nLets the operator confirm a `network_id` actually exists and belongs to\nthe right network before saving. The number of eero units is what they\nuse as a sanity check.",
         "properties": {
+          "network_id": {
+            "type": "string",
+            "title": "Network Id"
+          },
+          "network_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Name"
+          },
+          "ssid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssid"
+          },
+          "wan_ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wan Ip"
+          },
           "eero_count": {
-            "default": 0,
+            "type": "integer",
             "title": "Eero Count",
-            "type": "integer"
+            "default": 0
+          },
+          "is_online": {
+            "type": "boolean",
+            "title": "Is Online",
+            "default": false
           },
           "error": {
             "anyOf": [
@@ -260,63 +1808,36 @@
               }
             ],
             "title": "Error"
-          },
-          "is_online": {
-            "default": false,
-            "title": "Is Online",
-            "type": "boolean"
-          },
-          "network_id": {
-            "title": "Network Id",
-            "type": "string"
-          },
-          "network_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Network Name"
-          },
-          "ssid": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ssid"
-          },
-          "wan_ip": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Wan Ip"
           }
         },
+        "type": "object",
         "required": [
           "network_id"
         ],
         "title": "AreaPreviewResponse",
-        "type": "object"
+        "description": "Returned by `POST /api/v1/admin/areas/preview`.\n\nLets the operator confirm a `network_id` actually exists and belongs to\nthe right network before saving. The number of eero units is what they\nuse as a sanity check."
+      },
+      "Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post"
       },
       "ClliCreate": {
         "properties": {
           "clli_code": {
+            "type": "string",
             "maxLength": 64,
             "minLength": 1,
-            "title": "Clli Code",
-            "type": "string"
+            "title": "Clli Code"
           },
           "description": {
             "anyOf": [
@@ -330,17 +1851,21 @@
             "title": "Description"
           }
         },
+        "type": "object",
         "required": [
           "clli_code"
         ],
-        "title": "ClliCreate",
-        "type": "object"
+        "title": "ClliCreate"
       },
       "ClliOut": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
           "clli_code": {
-            "title": "Clli Code",
-            "type": "string"
+            "type": "string",
+            "title": "Clli Code"
           },
           "description": {
             "anyOf": [
@@ -352,22 +1877,70 @@
               }
             ],
             "title": "Description"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "clli_code",
           "description"
         ],
-        "title": "ClliOut",
-        "type": "object"
+        "title": "ClliOut"
       },
       "CommonAreaCreate": {
         "properties": {
+          "location_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Location Name"
+          },
+          "network_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Network Id"
+          },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
+          },
+          "location_type": {
+            "type": "string",
+            "enum": [
+              "indoor",
+              "outdoor"
+            ],
+            "title": "Location Type",
+            "default": "indoor"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "api_endpoint": {
             "anyOf": [
               {
@@ -378,69 +1951,61 @@
               }
             ],
             "title": "Api Endpoint"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "island": {
-            "anyOf": [
-              {
-                "enum": [
-                  "oahu",
-                  "maui",
-                  "big-island",
-                  "kauai",
-                  "molokai",
-                  "lanai",
-                  "hawaii"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Island"
-          },
-          "location_name": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Location Name",
-            "type": "string"
-          },
-          "location_type": {
-            "default": "indoor",
-            "enum": [
-              "indoor",
-              "outdoor"
-            ],
-            "title": "Location Type",
-            "type": "string"
-          },
-          "network_id": {
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Network Id",
-            "type": "string"
           }
         },
+        "type": "object",
         "required": [
           "location_name",
           "network_id"
         ],
-        "title": "CommonAreaCreate",
-        "type": "object"
+        "title": "CommonAreaCreate"
       },
       "CommonAreaOut": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "property_id": {
+            "type": "integer",
+            "title": "Property Id"
+          },
+          "location_name": {
+            "type": "string",
+            "title": "Location Name"
+          },
+          "network_id": {
+            "type": "string",
+            "title": "Network Id"
+          },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
+          },
+          "location_type": {
+            "type": "string",
+            "enum": [
+              "indoor",
+              "outdoor"
+            ],
+            "title": "Location Type"
+          },
           "description": {
             "anyOf": [
               {
@@ -451,62 +2016,6 @@
               }
             ],
             "title": "Description"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "is_online": {
-            "title": "Is Online",
-            "type": "boolean"
-          },
-          "island": {
-            "anyOf": [
-              {
-                "enum": [
-                  "oahu",
-                  "maui",
-                  "big-island",
-                  "kauai",
-                  "molokai",
-                  "lanai",
-                  "hawaii"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Island"
-          },
-          "last_checked": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Checked"
-          },
-          "location_name": {
-            "title": "Location Name",
-            "type": "string"
-          },
-          "location_type": {
-            "enum": [
-              "indoor",
-              "outdoor"
-            ],
-            "title": "Location Type",
-            "type": "string"
-          },
-          "network_id": {
-            "title": "Network Id",
-            "type": "string"
           },
           "network_name": {
             "anyOf": [
@@ -518,10 +2027,6 @@
               }
             ],
             "title": "Network Name"
-          },
-          "property_id": {
-            "title": "Property Id",
-            "type": "integer"
           },
           "ssid": {
             "anyOf": [
@@ -544,8 +2049,25 @@
               }
             ],
             "title": "Wan Ip"
+          },
+          "is_online": {
+            "type": "boolean",
+            "title": "Is Online"
+          },
+          "last_checked": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checked"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "property_id",
@@ -560,21 +2082,57 @@
           "is_online",
           "last_checked"
         ],
-        "title": "CommonAreaOut",
-        "type": "object"
+        "title": "CommonAreaOut"
       },
       "CommonAreaUpdate": {
         "properties": {
-          "api_endpoint": {
+          "location_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Api Endpoint"
+            "title": "Location Name"
+          },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
+          },
+          "location_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "indoor",
+                  "outdoor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Type"
           },
           "description": {
             "anyOf": [
@@ -587,66 +2145,30 @@
             ],
             "title": "Description"
           },
-          "island": {
+          "api_endpoint": {
             "anyOf": [
               {
-                "enum": [
-                  "oahu",
-                  "maui",
-                  "big-island",
-                  "kauai",
-                  "molokai",
-                  "lanai",
-                  "hawaii"
-                ],
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Island"
-          },
-          "location_name": {
-            "anyOf": [
-              {
-                "maxLength": 120,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Location Name"
-          },
-          "location_type": {
-            "anyOf": [
-              {
-                "enum": [
-                  "indoor",
-                  "outdoor"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Location Type"
+            "title": "Api Endpoint"
           }
         },
-        "title": "CommonAreaUpdate",
-        "type": "object"
+        "type": "object",
+        "title": "CommonAreaUpdate"
       },
       "CurrentUserResponse": {
         "properties": {
-          "accessible_property_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Accessible Property Ids",
-            "type": "array"
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
           },
           "email": {
             "anyOf": [
@@ -659,27 +2181,27 @@
             ],
             "title": "Email"
           },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
           "is_active": {
-            "title": "Is Active",
-            "type": "boolean"
+            "type": "boolean",
+            "title": "Is Active"
           },
           "is_staff": {
-            "title": "Is Staff",
-            "type": "boolean"
+            "type": "boolean",
+            "title": "Is Staff"
           },
           "is_superuser": {
-            "title": "Is Superuser",
-            "type": "boolean"
+            "type": "boolean",
+            "title": "Is Superuser"
           },
-          "username": {
-            "title": "Username",
-            "type": "string"
+          "accessible_property_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Accessible Property Ids"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "username",
@@ -687,36 +2209,69 @@
           "is_staff",
           "is_superuser"
         ],
-        "title": "CurrentUserResponse",
-        "type": "object"
+        "title": "CurrentUserResponse"
       },
       "DashboardResponse": {
         "properties": {
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At"
+          },
+          "hst_now": {
+            "type": "string",
+            "title": "Hst Now"
+          },
+          "total_properties": {
+            "type": "integer",
+            "title": "Total Properties"
+          },
+          "total_networks": {
+            "type": "integer",
+            "title": "Total Networks"
+          },
+          "total_devices": {
+            "type": "integer",
+            "title": "Total Devices"
+          },
+          "avg_latency_ms": {
+            "type": "integer",
+            "title": "Avg Latency Ms"
+          },
+          "outage_count": {
+            "type": "integer",
+            "title": "Outage Count"
+          },
+          "degraded_count": {
+            "type": "integer",
+            "title": "Degraded Count"
+          },
+          "online_count": {
+            "type": "integer",
+            "title": "Online Count"
+          },
+          "islands": {
+            "items": {
+              "$ref": "#/components/schemas/IslandSummary"
+            },
+            "type": "array",
+            "title": "Islands"
+          },
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyPin"
+            },
+            "type": "array",
+            "title": "Properties"
+          },
           "alerts": {
             "items": {
               "$ref": "#/components/schemas/AlertItem"
             },
-            "title": "Alerts",
-            "type": "array"
+            "type": "array",
+            "title": "Alerts"
           },
-          "available_ssids": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Available Ssids",
-            "type": "array"
-          },
-          "avg_latency_ms": {
-            "title": "Avg Latency Ms",
-            "type": "integer"
-          },
-          "degraded_count": {
-            "title": "Degraded Count",
-            "type": "integer"
-          },
-          "generated_at": {
-            "title": "Generated At",
-            "type": "string"
+          "hero_chart": {
+            "$ref": "#/components/schemas/DeviceCountsResponse"
           },
           "heatmap": {
             "items": {
@@ -725,8 +2280,8 @@
               },
               "type": "array"
             },
-            "title": "Heatmap",
-            "type": "array"
+            "type": "array",
+            "title": "Heatmap"
           },
           "heatmap_peak": {
             "$ref": "#/components/schemas/HeatCallout"
@@ -734,55 +2289,22 @@
           "heatmap_quiet": {
             "$ref": "#/components/schemas/HeatCallout"
           },
-          "hero_chart": {
-            "$ref": "#/components/schemas/DeviceCountsResponse"
-          },
-          "hst_now": {
-            "title": "Hst Now",
-            "type": "string"
-          },
-          "islands": {
+          "available_ssids": {
             "items": {
-              "$ref": "#/components/schemas/IslandSummary"
+              "type": "string"
             },
-            "title": "Islands",
-            "type": "array"
+            "type": "array",
+            "title": "Available Ssids"
           },
           "maintenance": {
             "items": {
               "$ref": "#/components/schemas/MaintenanceWindow"
             },
-            "title": "Maintenance",
-            "type": "array"
-          },
-          "online_count": {
-            "title": "Online Count",
-            "type": "integer"
-          },
-          "outage_count": {
-            "title": "Outage Count",
-            "type": "integer"
-          },
-          "properties": {
-            "items": {
-              "$ref": "#/components/schemas/PropertyPin"
-            },
-            "title": "Properties",
-            "type": "array"
-          },
-          "total_devices": {
-            "title": "Total Devices",
-            "type": "integer"
-          },
-          "total_networks": {
-            "title": "Total Networks",
-            "type": "integer"
-          },
-          "total_properties": {
-            "title": "Total Properties",
-            "type": "integer"
+            "type": "array",
+            "title": "Maintenance"
           }
         },
+        "type": "object",
         "required": [
           "generated_at",
           "hst_now",
@@ -801,49 +2323,54 @@
           "heatmap_peak",
           "heatmap_quiet"
         ],
-        "title": "DashboardResponse",
-        "type": "object"
+        "title": "DashboardResponse"
       },
       "DeviceCountSeries": {
         "properties": {
+          "network_id": {
+            "type": "string",
+            "title": "Network Id"
+          },
+          "network_name": {
+            "type": "string",
+            "title": "Network Name"
+          },
           "color": {
-            "title": "Color",
-            "type": "string"
+            "type": "string",
+            "title": "Color"
           },
           "data": {
             "items": {
               "type": "integer"
             },
-            "title": "Data",
-            "type": "array"
-          },
-          "network_id": {
-            "title": "Network Id",
-            "type": "string"
-          },
-          "network_name": {
-            "title": "Network Name",
-            "type": "string"
+            "type": "array",
+            "title": "Data"
           }
         },
+        "type": "object",
         "required": [
           "network_id",
           "network_name",
           "color",
           "data"
         ],
-        "title": "DeviceCountSeries",
-        "type": "object"
+        "title": "DeviceCountSeries"
       },
       "DeviceCountsResponse": {
-        "description": "Contract for `GET /api/v1/properties/{id}/device-counts`.\n\nSame shape is embedded into the dashboard hero chart so the frontend can\nuse a single component for both views.",
         "properties": {
+          "timestamps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Timestamps"
+          },
           "series": {
             "items": {
               "$ref": "#/components/schemas/DeviceCountSeries"
             },
-            "title": "Series",
-            "type": "array"
+            "type": "array",
+            "title": "Series"
           },
           "ssid": {
             "anyOf": [
@@ -855,24 +2382,38 @@
               }
             ],
             "title": "Ssid"
-          },
-          "timestamps": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Timestamps",
-            "type": "array"
           }
         },
+        "type": "object",
         "required": [
           "timestamps",
           "series"
         ],
         "title": "DeviceCountsResponse",
-        "type": "object"
+        "description": "Contract for `GET /api/v1/properties/{id}/device-counts`.\n\nSame shape is embedded into the dashboard hero chart so the frontend can\nuse a single component for both views."
       },
       "DeviceRow": {
         "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mac": {
+            "type": "string",
+            "title": "Mac"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "rssi": {
+            "type": "integer",
+            "title": "Rssi"
+          },
+          "online": {
+            "type": "boolean",
+            "title": "Online"
+          },
           "firmware_version": {
             "anyOf": [
               {
@@ -887,39 +2428,20 @@
           "location_type": {
             "anyOf": [
               {
+                "type": "string",
                 "enum": [
                   "indoor",
                   "outdoor"
-                ],
-                "type": "string"
+                ]
               },
               {
                 "type": "null"
               }
             ],
             "title": "Location Type"
-          },
-          "mac": {
-            "title": "Mac",
-            "type": "string"
-          },
-          "model": {
-            "title": "Model",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "online": {
-            "title": "Online",
-            "type": "boolean"
-          },
-          "rssi": {
-            "title": "Rssi",
-            "type": "integer"
           }
         },
+        "type": "object",
         "required": [
           "name",
           "mac",
@@ -927,30 +2449,13 @@
           "rssi",
           "online"
         ],
-        "title": "DeviceRow",
-        "type": "object"
+        "title": "DeviceRow"
       },
       "EeroUnitRow": {
         "properties": {
-          "connected_count": {
-            "default": 0,
-            "title": "Connected Count",
-            "type": "integer"
-          },
-          "firmware_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Firmware Version"
-          },
-          "is_online": {
-            "title": "Is Online",
-            "type": "boolean"
+          "serial": {
+            "type": "string",
+            "title": "Serial"
           },
           "location": {
             "anyOf": [
@@ -964,12 +2469,12 @@
             "title": "Location"
           },
           "location_type": {
+            "type": "string",
             "enum": [
               "indoor",
               "outdoor"
             ],
-            "title": "Location Type",
-            "type": "string"
+            "title": "Location Type"
           },
           "model": {
             "anyOf": [
@@ -982,60 +2487,76 @@
             ],
             "title": "Model"
           },
-          "serial": {
-            "title": "Serial",
-            "type": "string"
+          "firmware_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firmware Version"
+          },
+          "is_online": {
+            "type": "boolean",
+            "title": "Is Online"
+          },
+          "connected_count": {
+            "type": "integer",
+            "title": "Connected Count",
+            "default": 0
           }
         },
+        "type": "object",
         "required": [
           "serial",
           "location_type",
           "is_online"
         ],
-        "title": "EeroUnitRow",
-        "type": "object"
+        "title": "EeroUnitRow"
       },
       "GrantOut": {
         "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
           },
           "property_id": {
-            "title": "Property Id",
-            "type": "integer"
+            "type": "integer",
+            "title": "Property Id"
           },
-          "user_id": {
-            "title": "User Id",
-            "type": "integer"
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
+        "type": "object",
         "required": [
           "user_id",
           "property_id",
           "created_at"
         ],
-        "title": "GrantOut",
-        "type": "object"
+        "title": "GrantOut"
       },
       "GrantRequest": {
         "properties": {
-          "property_id": {
-            "title": "Property Id",
-            "type": "integer"
-          },
           "user_id": {
-            "title": "User Id",
-            "type": "integer"
+            "type": "integer",
+            "title": "User Id"
+          },
+          "property_id": {
+            "type": "integer",
+            "title": "Property Id"
           }
         },
+        "type": "object",
         "required": [
           "user_id",
           "property_id"
         ],
-        "title": "GrantRequest",
-        "type": "object"
+        "title": "GrantRequest"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1043,43 +2564,40 @@
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             },
-            "title": "Detail",
-            "type": "array"
+            "type": "array",
+            "title": "Detail"
           }
         },
-        "title": "HTTPValidationError",
-        "type": "object"
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "HeatCallout": {
         "properties": {
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          },
           "day": {
-            "title": "Day",
-            "type": "string"
+            "type": "string",
+            "title": "Day"
           },
           "hour": {
-            "title": "Hour",
-            "type": "integer"
+            "type": "integer",
+            "title": "Hour"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
           }
         },
+        "type": "object",
         "required": [
           "day",
           "hour",
           "count"
         ],
-        "title": "HeatCallout",
-        "type": "object"
+        "title": "HeatCallout"
       },
       "IslandSummary": {
         "properties": {
-          "devices": {
-            "title": "Devices",
-            "type": "integer"
-          },
           "island": {
+            "type": "string",
             "enum": [
               "oahu",
               "maui",
@@ -1088,35 +2606,39 @@
               "molokai",
               "lanai"
             ],
-            "title": "Island",
-            "type": "string"
+            "title": "Island"
           },
           "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "networks": {
-            "title": "Networks",
-            "type": "integer"
-          },
-          "offline": {
-            "title": "Offline",
-            "type": "integer"
+            "type": "string",
+            "title": "Label"
           },
           "properties": {
-            "title": "Properties",
-            "type": "integer"
+            "type": "integer",
+            "title": "Properties"
+          },
+          "networks": {
+            "type": "integer",
+            "title": "Networks"
+          },
+          "devices": {
+            "type": "integer",
+            "title": "Devices"
+          },
+          "offline": {
+            "type": "integer",
+            "title": "Offline"
           },
           "status": {
+            "type": "string",
             "enum": [
               "online",
               "degraded",
               "offline"
             ],
-            "title": "Status",
-            "type": "string"
+            "title": "Status"
           }
         },
+        "type": "object",
         "required": [
           "island",
           "label",
@@ -1126,39 +2648,34 @@
           "offline",
           "status"
         ],
-        "title": "IslandSummary",
-        "type": "object"
+        "title": "IslandSummary"
       },
       "LoginRequest": {
         "properties": {
-          "password": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Password",
-            "type": "string"
-          },
           "username": {
+            "type": "string",
             "maxLength": 150,
             "minLength": 1,
-            "title": "Username",
-            "type": "string"
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Password"
           }
         },
+        "type": "object",
         "required": [
           "username",
           "password"
         ],
-        "title": "LoginRequest",
-        "type": "object"
+        "title": "LoginRequest"
       },
       "MaintenanceCreate": {
         "properties": {
-          "is_active": {
-            "default": true,
-            "title": "Is Active",
-            "type": "boolean"
-          },
           "island": {
+            "type": "string",
             "enum": [
               "all",
               "oahu",
@@ -1169,54 +2686,48 @@
               "lanai",
               "hawaii"
             ],
-            "title": "Island",
-            "type": "string"
+            "title": "Island"
+          },
+          "scheduled": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
           },
           "olt_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Olt Clli Codes",
-            "type": "array"
-          },
-          "scheduled": {
-            "format": "date-time",
-            "title": "Scheduled",
-            "type": "string"
+            "type": "array",
+            "title": "Olt Clli Codes"
           },
           "seven_fifty_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Seven Fifty Clli Codes",
-            "type": "array"
+            "type": "array",
+            "title": "Seven Fifty Clli Codes"
           }
         },
+        "type": "object",
         "required": [
           "island",
           "scheduled"
         ],
-        "title": "MaintenanceCreate",
-        "type": "object"
+        "title": "MaintenanceCreate"
       },
       "MaintenanceOut": {
         "properties": {
-          "affected_properties": {
-            "items": {
-              "$ref": "#/components/schemas/AffectedPropertyOut"
-            },
-            "title": "Affected Properties",
-            "type": "array"
-          },
           "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "is_active": {
-            "title": "Is Active",
-            "type": "boolean"
+            "type": "integer",
+            "title": "Id"
           },
           "island": {
+            "type": "string",
             "enum": [
               "all",
               "oahu",
@@ -1227,40 +2738,83 @@
               "lanai",
               "hawaii"
             ],
-            "title": "Island",
-            "type": "string"
+            "title": "Island"
+          },
+          "scheduled": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
           },
           "olt_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Olt Clli Codes",
-            "type": "array"
-          },
-          "scheduled": {
-            "format": "date-time",
-            "title": "Scheduled",
-            "type": "string"
+            "type": "array",
+            "title": "Olt Clli Codes"
           },
           "seven_fifty_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Seven Fifty Clli Codes",
-            "type": "array"
+            "type": "array",
+            "title": "Seven Fifty Clli Codes"
+          },
+          "affected_properties": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedPropertyOut"
+            },
+            "type": "array",
+            "title": "Affected Properties"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "island",
           "scheduled",
           "is_active"
         ],
-        "title": "MaintenanceOut",
-        "type": "object"
+        "title": "MaintenanceOut"
       },
       "MaintenanceUpdate": {
         "properties": {
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
+          },
+          "scheduled": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled"
+          },
           "is_active": {
             "anyOf": [
               {
@@ -1271,27 +2825,6 @@
               }
             ],
             "title": "Is Active"
-          },
-          "island": {
-            "anyOf": [
-              {
-                "enum": [
-                  "all",
-                  "oahu",
-                  "maui",
-                  "big-island",
-                  "kauai",
-                  "molokai",
-                  "lanai",
-                  "hawaii"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Island"
           },
           "olt_clli_codes": {
             "anyOf": [
@@ -1306,18 +2839,6 @@
               }
             ],
             "title": "Olt Clli Codes"
-          },
-          "scheduled": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scheduled"
           },
           "seven_fifty_clli_codes": {
             "anyOf": [
@@ -1334,59 +2855,255 @@
             "title": "Seven Fifty Clli Codes"
           }
         },
-        "title": "MaintenanceUpdate",
-        "type": "object"
+        "type": "object",
+        "title": "MaintenanceUpdate"
       },
       "MaintenanceWindow": {
-        "description": "Light-weight wire shape for the dashboard's \"Scheduled Maintenance\"\ncard. Full admin shape lives in `schemas/maintenance.py`.",
         "properties": {
-          "affected_property_names": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Affected Property Names",
-            "type": "array"
-          },
           "id": {
-            "title": "Id",
-            "type": "integer"
+            "type": "integer",
+            "title": "Id"
           },
           "island": {
-            "title": "Island",
-            "type": "string"
+            "type": "string",
+            "title": "Island"
+          },
+          "scheduled": {
+            "type": "string",
+            "title": "Scheduled"
           },
           "olt_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Olt Clli Codes",
-            "type": "array"
-          },
-          "scheduled": {
-            "title": "Scheduled",
-            "type": "string"
+            "type": "array",
+            "title": "Olt Clli Codes"
           },
           "seven_fifty_clli_codes": {
             "items": {
               "type": "string"
             },
-            "title": "Seven Fifty Clli Codes",
-            "type": "array"
+            "type": "array",
+            "title": "Seven Fifty Clli Codes"
+          },
+          "affected_property_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Affected Property Names"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "island",
           "scheduled"
         ],
         "title": "MaintenanceWindow",
-        "type": "object"
+        "description": "Light-weight wire shape for the dashboard's \"Scheduled Maintenance\"\ncard. Full admin shape lives in `schemas/maintenance.py`."
+      },
+      "MduOltInfo": {
+        "properties": {
+          "mdu_name": {
+            "type": "string",
+            "title": "Mdu Name"
+          },
+          "fdh_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fdh Name"
+          },
+          "olt_clli": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Olt Clli"
+          },
+          "olt_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Olt Type"
+          },
+          "seven_fifty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seven Fifty"
+          },
+          "seven_fifty_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seven Fifty Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mdu_name"
+        ],
+        "title": "MduOltInfo",
+        "description": "Populated when the property's name matches an entry in the uploaded\nMDU\u2194OLT map (admin \u2192 MDU Map upload)."
+      },
+      "MduOltMapOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "mdu_name": {
+            "type": "string",
+            "title": "Mdu Name"
+          },
+          "fdh_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fdh Name"
+          },
+          "equip_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equip Name"
+          },
+          "serving_olt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serving Olt"
+          },
+          "equip_name_1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equip Name 1"
+          },
+          "equip_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equip Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "mdu_name"
+        ],
+        "title": "MduOltMapOut"
+      },
+      "MduOltMapUploadResponse": {
+        "properties": {
+          "rows_imported": {
+            "type": "integer",
+            "title": "Rows Imported"
+          },
+          "distinct_mdus": {
+            "type": "integer",
+            "title": "Distinct Mdus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_imported",
+          "distinct_mdus"
+        ],
+        "title": "MduOltMapUploadResponse"
       },
       "NetworkRow": {
         "properties": {
+          "network_id": {
+            "type": "string",
+            "title": "Network Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "degraded",
+              "offline"
+            ],
+            "title": "Status"
+          },
+          "devices": {
+            "type": "integer",
+            "title": "Devices"
+          },
           "color": {
-            "title": "Color",
-            "type": "string"
+            "type": "string",
+            "title": "Color"
+          },
+          "location_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "indoor",
+                  "outdoor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Type"
           },
           "description": {
             "anyOf": [
@@ -1399,10 +3116,6 @@
             ],
             "title": "Description"
           },
-          "devices": {
-            "title": "Devices",
-            "type": "integer"
-          },
           "last_checked": {
             "anyOf": [
               {
@@ -1413,40 +3126,9 @@
               }
             ],
             "title": "Last Checked"
-          },
-          "location_type": {
-            "anyOf": [
-              {
-                "enum": [
-                  "indoor",
-                  "outdoor"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Location Type"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "network_id": {
-            "title": "Network Id",
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "online",
-              "degraded",
-              "offline"
-            ],
-            "title": "Status",
-            "type": "string"
           }
         },
+        "type": "object",
         "required": [
           "network_id",
           "name",
@@ -1454,11 +3136,16 @@
           "devices",
           "color"
         ],
-        "title": "NetworkRow",
-        "type": "object"
+        "title": "NetworkRow"
       },
       "PropertyCreate": {
         "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
           "address": {
             "anyOf": [
               {
@@ -1469,22 +3156,49 @@
               }
             ],
             "title": "Address"
-          },
-          "name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
           }
         },
+        "type": "object",
         "required": [
           "name"
         ],
-        "title": "PropertyCreate",
-        "type": "object"
+        "title": "PropertyCreate"
       },
       "PropertyDetailResponse": {
         "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "island": {
+            "type": "string",
+            "enum": [
+              "oahu",
+              "maui",
+              "big-island",
+              "kauai",
+              "molokai",
+              "lanai"
+            ],
+            "title": "Island"
+          },
+          "central_office": {
+            "type": "string",
+            "title": "Central Office"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "degraded",
+              "offline"
+            ],
+            "title": "Status"
+          },
           "address": {
             "anyOf": [
               {
@@ -1495,13 +3209,6 @@
               }
             ],
             "title": "Address"
-          },
-          "central_office": {
-            "title": "Central Office",
-            "type": "string"
-          },
-          "chart": {
-            "$ref": "#/components/schemas/DeviceCountsResponse"
           },
           "created_at": {
             "anyOf": [
@@ -1514,76 +3221,61 @@
             ],
             "title": "Created At"
           },
-          "devices": {
-            "items": {
-              "$ref": "#/components/schemas/DeviceRow"
-            },
-            "title": "Devices",
-            "type": "array"
+          "networks_count": {
+            "type": "integer",
+            "title": "Networks Count"
           },
           "devices_count": {
-            "title": "Devices Count",
-            "type": "integer"
+            "type": "integer",
+            "title": "Devices Count"
+          },
+          "uptime_pct": {
+            "type": "number",
+            "title": "Uptime Pct"
           },
           "eero_models": {
             "additionalProperties": {
               "type": "integer"
             },
-            "title": "Eero Models",
-            "type": "object"
+            "type": "object",
+            "title": "Eero Models"
           },
           "firmware_versions": {
             "additionalProperties": {
               "type": "integer"
             },
-            "title": "Firmware Versions",
-            "type": "object"
+            "type": "object",
+            "title": "Firmware Versions"
           },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "island": {
-            "enum": [
-              "oahu",
-              "maui",
-              "big-island",
-              "kauai",
-              "molokai",
-              "lanai"
-            ],
-            "title": "Island",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
+          "chart": {
+            "$ref": "#/components/schemas/DeviceCountsResponse"
           },
           "networks": {
             "items": {
               "$ref": "#/components/schemas/NetworkRow"
             },
-            "title": "Networks",
-            "type": "array"
+            "type": "array",
+            "title": "Networks"
           },
-          "networks_count": {
-            "title": "Networks Count",
-            "type": "integer"
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceRow"
+            },
+            "type": "array",
+            "title": "Devices"
           },
-          "status": {
-            "enum": [
-              "online",
-              "degraded",
-              "offline"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "uptime_pct": {
-            "title": "Uptime Pct",
-            "type": "number"
+          "mdu_olt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MduOltInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
+        "type": "object",
         "required": [
           "id",
           "name",
@@ -1597,11 +3289,18 @@
           "networks",
           "devices"
         ],
-        "title": "PropertyDetailResponse",
-        "type": "object"
+        "title": "PropertyDetailResponse"
       },
       "PropertyOut": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
           "address": {
             "anyOf": [
               {
@@ -1613,30 +3312,23 @@
             ],
             "title": "Address"
           },
-          "common_areas_count": {
-            "default": 0,
-            "title": "Common Areas Count",
-            "type": "integer"
-          },
           "created_at": {
+            "type": "string",
             "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
+            "title": "Created At"
           },
           "updated_at": {
+            "type": "string",
             "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
+            "title": "Updated At"
+          },
+          "common_areas_count": {
+            "type": "integer",
+            "title": "Common Areas Count",
+            "default": 0
           }
         },
+        "type": "object",
         "required": [
           "id",
           "name",
@@ -1644,24 +3336,20 @@
           "created_at",
           "updated_at"
         ],
-        "title": "PropertyOut",
-        "type": "object"
+        "title": "PropertyOut"
       },
       "PropertyPin": {
         "properties": {
-          "central_office": {
-            "title": "Central Office",
-            "type": "string"
-          },
-          "devices": {
-            "title": "Devices",
-            "type": "integer"
-          },
           "id": {
-            "title": "Id",
-            "type": "string"
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
           },
           "island": {
+            "type": "string",
             "enum": [
               "oahu",
               "maui",
@@ -1670,49 +3358,53 @@
               "molokai",
               "lanai"
             ],
-            "title": "Island",
-            "type": "string"
+            "title": "Island"
           },
-          "lat": {
-            "description": "0..1 normalized for the map SVG",
-            "title": "Lat",
-            "type": "number"
-          },
-          "lng": {
-            "description": "0..1 normalized for the map SVG",
-            "title": "Lng",
-            "type": "number"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
+          "central_office": {
+            "type": "string",
+            "title": "Central Office"
           },
           "networks": {
-            "title": "Networks",
-            "type": "integer"
+            "type": "integer",
+            "title": "Networks"
           },
-          "offline_count": {
-            "default": 0,
-            "title": "Offline Count",
-            "type": "integer"
-          },
-          "spark": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Spark",
-            "type": "array"
+          "devices": {
+            "type": "integer",
+            "title": "Devices"
           },
           "status": {
+            "type": "string",
             "enum": [
               "online",
               "degraded",
               "offline"
             ],
-            "title": "Status",
-            "type": "string"
+            "title": "Status"
+          },
+          "offline_count": {
+            "type": "integer",
+            "title": "Offline Count",
+            "default": 0
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "description": "0..1 normalized for the map SVG"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng",
+            "description": "0..1 normalized for the map SVG"
+          },
+          "spark": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Spark"
           }
         },
+        "type": "object",
         "required": [
           "id",
           "name",
@@ -1724,11 +3416,23 @@
           "lat",
           "lng"
         ],
-        "title": "PropertyPin",
-        "type": "object"
+        "title": "PropertyPin"
       },
       "PropertyUpdate": {
         "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "address": {
             "anyOf": [
               {
@@ -1739,88 +3443,64 @@
               }
             ],
             "title": "Address"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "maxLength": 255,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
           }
         },
-        "title": "PropertyUpdate",
-        "type": "object"
+        "type": "object",
+        "title": "PropertyUpdate"
       },
       "ReportRequest": {
-        "description": "Body of `POST /api/v1/properties/{id}/report`.\n\nEmpty `ssids` means \"include all\" \u2014 same UX as the current Django app\n(zero checkboxes \u21d2 all SSIDs).",
         "properties": {
           "ssids": {
             "items": {
               "type": "string"
             },
-            "title": "Ssids",
-            "type": "array"
+            "type": "array",
+            "title": "Ssids"
           }
         },
+        "type": "object",
         "title": "ReportRequest",
-        "type": "object"
+        "description": "Body of `POST /api/v1/properties/{id}/report`.\n\nEmpty `ssids` means \"include all\" \u2014 same UX as the current Django app\n(zero checkboxes \u21d2 all SSIDs)."
       },
       "SearchResponse": {
         "properties": {
           "query": {
-            "title": "Query",
-            "type": "string"
+            "type": "string",
+            "title": "Query"
           },
           "results": {
             "items": {
               "$ref": "#/components/schemas/SearchResult"
             },
-            "title": "Results",
-            "type": "array"
+            "type": "array",
+            "title": "Results"
           }
         },
+        "type": "object",
         "required": [
           "query",
           "results"
         ],
-        "title": "SearchResponse",
-        "type": "object"
+        "title": "SearchResponse"
       },
       "SearchResult": {
         "properties": {
           "kind": {
+            "type": "string",
             "enum": [
               "property",
               "area",
               "network_id"
             ],
-            "title": "Kind",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "network_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Network Id"
+            "title": "Kind"
           },
           "property_id": {
-            "title": "Property Id",
-            "type": "string"
+            "type": "string",
+            "title": "Property Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
           },
           "sublabel": {
             "anyOf": [
@@ -1832,25 +3512,36 @@
               }
             ],
             "title": "Sublabel"
+          },
+          "network_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Id"
           }
         },
+        "type": "object",
         "required": [
           "kind",
           "property_id",
           "label"
         ],
-        "title": "SearchResult",
-        "type": "object"
+        "title": "SearchResult"
       },
       "StatusHistoryPoint": {
         "properties": {
           "checked_at": {
-            "title": "Checked At",
-            "type": "string"
+            "type": "string",
+            "title": "Checked At"
           },
           "is_online": {
-            "title": "Is Online",
-            "type": "boolean"
+            "type": "boolean",
+            "title": "Is Online"
           },
           "response_time_ms": {
             "anyOf": [
@@ -1864,22 +3555,15 @@
             "title": "Response Time Ms"
           }
         },
+        "type": "object",
         "required": [
           "checked_at",
           "is_online"
         ],
-        "title": "StatusHistoryPoint",
-        "type": "object"
+        "title": "StatusHistoryPoint"
       },
       "ValidationError": {
         "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
           "loc": {
             "items": {
               "anyOf": [
@@ -1891,1304 +3575,32 @@
                 }
               ]
             },
-            "title": "Location",
-            "type": "array"
+            "type": "array",
+            "title": "Location"
           },
           "msg": {
-            "title": "Message",
-            "type": "string"
+            "type": "string",
+            "title": "Message"
           },
           "type": {
-            "title": "Error Type",
-            "type": "string"
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
+        "type": "object",
         "required": [
           "loc",
           "msg",
           "type"
         ],
-        "title": "ValidationError",
-        "type": "object"
-      }
-    }
-  },
-  "info": {
-    "title": "Common Area Monitor API",
-    "version": "0.1.0"
-  },
-  "openapi": "3.1.0",
-  "paths": {
-    "/api/v1/admin/access": {
-      "delete": {
-        "operationId": "revoke_access_api_v1_admin_access_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GrantRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Revoke Access",
-        "tags": [
-          "admin"
-        ]
-      },
-      "post": {
-        "operationId": "grant_access_api_v1_admin_access_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GrantRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GrantOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Grant Access",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/areas/preview": {
-      "post": {
-        "description": "SPEC \u00a76.1 \u2014 live eero validation. Operator confirms the network_id\n+ name + eero count before saving.",
-        "operationId": "preview_area_api_v1_admin_areas_preview_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AreaPreviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AreaPreviewResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Preview Area",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/areas/{area_id}": {
-      "delete": {
-        "operationId": "delete_common_area_api_v1_admin_areas__area_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "area_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Area Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Common Area",
-        "tags": [
-          "admin"
-        ]
-      },
-      "put": {
-        "operationId": "update_common_area_api_v1_admin_areas__area_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "area_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Area Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommonAreaUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommonAreaOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Common Area",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/clli/olt": {
-      "get": {
-        "operationId": "list_olt_cllis_api_v1_admin_clli_olt_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ClliOut"
-                  },
-                  "title": "Response List Olt Cllis Api V1 Admin Clli Olt Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Olt Cllis",
-        "tags": [
-          "admin"
-        ]
-      },
-      "post": {
-        "operationId": "create_olt_clli_api_v1_admin_clli_olt_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClliCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClliOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Olt Clli",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/clli/olt/{clli_id}": {
-      "delete": {
-        "operationId": "delete_olt_clli_api_v1_admin_clli_olt__clli_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "clli_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Clli Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Olt Clli",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/clli/seven-fifty": {
-      "get": {
-        "operationId": "list_seven_fifty_cllis_api_v1_admin_clli_seven_fifty_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ClliOut"
-                  },
-                  "title": "Response List Seven Fifty Cllis Api V1 Admin Clli Seven Fifty Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Seven Fifty Cllis",
-        "tags": [
-          "admin"
-        ]
-      },
-      "post": {
-        "operationId": "create_seven_fifty_clli_api_v1_admin_clli_seven_fifty_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClliCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClliOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Seven Fifty Clli",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/clli/seven-fifty/{clli_id}": {
-      "delete": {
-        "operationId": "delete_seven_fifty_clli_api_v1_admin_clli_seven_fifty__clli_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "clli_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Clli Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Seven Fifty Clli",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/maintenance": {
-      "post": {
-        "operationId": "create_maintenance_api_v1_admin_maintenance_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MaintenanceCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaintenanceOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Maintenance",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/maintenance/{m_id}": {
-      "delete": {
-        "operationId": "delete_maintenance_api_v1_admin_maintenance__m_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "m_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "M Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Maintenance",
-        "tags": [
-          "admin"
-        ]
-      },
-      "put": {
-        "operationId": "update_maintenance_api_v1_admin_maintenance__m_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "m_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "M Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MaintenanceUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MaintenanceOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Maintenance",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/properties": {
-      "get": {
-        "operationId": "list_properties_api_v1_admin_properties_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PropertyOut"
-                  },
-                  "title": "Response List Properties Api V1 Admin Properties Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Properties",
-        "tags": [
-          "admin"
-        ]
-      },
-      "post": {
-        "operationId": "create_property_api_v1_admin_properties_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PropertyCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PropertyOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Property",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/properties/{property_id}": {
-      "delete": {
-        "operationId": "delete_property_api_v1_admin_properties__property_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Property Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Property",
-        "tags": [
-          "admin"
-        ]
-      },
-      "put": {
-        "operationId": "update_property_api_v1_admin_properties__property_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Property Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PropertyUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PropertyOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Property",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/properties/{property_id}/areas": {
-      "post": {
-        "operationId": "create_common_area_api_v1_admin_properties__property_id__areas_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "title": "Property Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommonAreaCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommonAreaOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Common Area",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/areas/{area_id}": {
-      "get": {
-        "description": "`area_id` is the network_id (e.g. `AKS-001`). Mock-mode short-circuits;\nreal-mode enforces per-property access via the parent property.",
-        "operationId": "get_area_api_v1_areas__area_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "area_id",
-            "required": true,
-            "schema": {
-              "title": "Area Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AreaDetailResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Common-area detail (SPEC \u00a75.6)",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "operationId": "login_api_v1_auth_login_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Login",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "operationId": "logout_api_v1_auth_logout_post",
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Logout",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/me": {
-      "get": {
-        "operationId": "me_api_v1_auth_me_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CurrentUserResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Me",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/dashboard": {
-      "get": {
-        "description": "Per-user filtered dashboard.\n\nMock path returns the full set (dev convenience). Real path filters\nproperties to those the caller has access to.",
-        "operationId": "get_dashboard_api_v1_dashboard_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "island",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Island"
-            }
-          },
-          {
-            "in": "query",
-            "name": "days",
-            "required": false,
-            "schema": {
-              "default": 7,
-              "maximum": 30,
-              "minimum": 1,
-              "title": "Days",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "ssid",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Ssid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Dashboard",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/dashboard/stream": {
-      "get": {
-        "description": "Long-lived SSE connection. Emits:\n\n  \u2022 `hello`              \u2014 handshake on connect\n  \u2022 `dashboard.invalidate` \u2014 client should re-fetch `/api/v1/dashboard`\n  \u2022 `:heartbeat` comments  \u2014 keep-alives so proxies don't time out\n\nFalls back to 30s polling on the client if the connection drops.",
-        "operationId": "get_dashboard_stream_api_v1_dashboard_stream_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Server-Sent Events stream of dashboard invalidations (SPEC \u00a75.4)",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/maintenance": {
-      "get": {
-        "description": "SPEC \u00a75.4 \u2014 feeds the dashboard's \"Scheduled Maintenance\" card.",
-        "operationId": "get_maintenance_api_v1_maintenance_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {},
-                  "title": "Response Get Maintenance Api V1 Maintenance Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Active future scheduled maintenance windows + affected properties",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/properties/{property_id}": {
-      "get": {
-        "description": "Property detail.\n\nMock path uses string IDs (\"aks\", \"prk\", \u2026) so we can't pre-validate\nvia `require_property_access` (which expects int). The DB path enforces\nper-property access inline.",
-        "operationId": "get_property_api_v1_properties__property_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "title": "Property Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PropertyDetailResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Property detail (drives the dashboard drawer)",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/properties/{property_id}/device-counts": {
-      "get": {
-        "description": "Critical, must-retain feature (SPEC \u00a73 / README backend contract).\n\n`ssid` omitted \u2192 totals (canonical `ssid=\"\"` rows in `connected_device_count`).\n`ssid` present \u2192 filtered series. Same timestamps drive both views.",
-        "operationId": "get_device_counts_api_v1_properties__property_id__device_counts_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "title": "Property Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "days",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "maximum": 30,
-              "minimum": 1,
-              "title": "Days",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "ssid",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Ssid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceCountsResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Connected-devices time series for stacked-area chart",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/properties/{property_id}/report": {
-      "post": {
-        "description": "`POST /api/v1/properties/{id}/report` `{ssids: [...]}` \u2192 streams PDF.\n\nEmpty `ssids` means \"include all\" (matches the current Django app).",
-        "operationId": "post_property_report_api_v1_properties__property_id__report_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "title": "Property Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Generate a PDF WiFi network report for the property (SPEC \u00a75.7)",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/properties/{property_id}/ssids": {
-      "get": {
-        "description": "SPEC \u00a77 \u2014 feeds the SSID dropdown on the Property Detail page.",
-        "operationId": "get_property_ssids_api_v1_properties__property_id__ssids_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "property_id",
-            "required": true,
-            "schema": {
-              "title": "Property Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "days",
-            "required": false,
-            "schema": {
-              "default": 7,
-              "maximum": 30,
-              "minimum": 1,
-              "title": "Days",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "title": "Response Get Property Ssids Api V1 Properties  Property Id  Ssids Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Distinct SSIDs seen for this property in the window",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/api/v1/search": {
-      "get": {
-        "description": "SPEC \u00a75.4 / \u00a78.3 \u2014 global search bar in the header / Cmd+K palette.",
-        "operationId": "get_search_api_v1_search_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Q",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Global search across properties, common areas, and network IDs",
-        "tags": [
-          "dashboard"
-        ]
-      }
-    },
-    "/health": {
-      "get": {
-        "operationId": "health_health_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Health Health Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Health"
-      }
-    },
-    "/metrics": {
-      "get": {
-        "operationId": "metrics_metrics_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Metrics"
+        "title": "ValidationError"
       }
     }
   }

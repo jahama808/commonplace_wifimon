@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/v1/admin/access": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -13,10 +13,357 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Grant Access */
-        post: operations["grant_access_api_v1_admin_access_post"];
-        /** Revoke Access */
-        delete: operations["revoke_access_api_v1_admin_access_delete"];
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active future scheduled maintenance windows + affected properties
+         * @description SPEC §5.4 — feeds the dashboard's "Scheduled Maintenance" card.
+         */
+        get: operations["get_maintenance_api_v1_maintenance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Global search across properties, common areas, and network IDs
+         * @description SPEC §5.4 / §8.3 — global search bar in the header / Cmd+K palette.
+         */
+        get: operations["get_search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server-Sent Events stream of dashboard invalidations (SPEC §5.4)
+         * @description Long-lived SSE connection. Emits:
+         *
+         *       • `hello`              — handshake on connect
+         *       • `dashboard.invalidate` — client should re-fetch `/api/v1/dashboard`
+         *       • `:heartbeat` comments  — keep-alives so proxies don't time out
+         *
+         *     Falls back to 30s polling on the client if the connection drops.
+         */
+        get: operations["get_dashboard_stream_api_v1_dashboard_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dashboard
+         * @description Per-user filtered dashboard.
+         *
+         *     Mock path returns the full set (dev convenience). Real path filters
+         *     properties to those the caller has access to.
+         */
+        get: operations["get_dashboard_api_v1_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/device-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Connected-devices time series for stacked-area chart
+         * @description Critical, must-retain feature (SPEC §3 / README backend contract).
+         *
+         *     `ssid` omitted → totals (canonical `ssid=""` rows in `connected_device_count`).
+         *     `ssid` present → filtered series. Same timestamps drive both views.
+         */
+        get: operations["get_device_counts_api_v1_properties__property_id__device_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ssids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Distinct SSIDs seen for this property in the window
+         * @description SPEC §7 — feeds the SSID dropdown on the Property Detail page.
+         */
+        get: operations["get_property_ssids_api_v1_properties__property_id__ssids_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Property detail (drives the dashboard drawer)
+         * @description Property detail.
+         *
+         *     Mock path uses string IDs ("aks", "prk", …) so we can't pre-validate
+         *     via `require_property_access` (which expects int). The DB path enforces
+         *     per-property access inline.
+         */
+        get: operations["get_property_api_v1_properties__property_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate a PDF WiFi network report for the property (SPEC §5.7)
+         * @description `POST /api/v1/properties/{id}/report` `{ssids: [...]}` → streams PDF.
+         *
+         *     Empty `ssids` means "include all" (matches the current Django app).
+         */
+        post: operations["post_property_report_api_v1_properties__property_id__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/areas/{area_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Common-area detail (SPEC §5.6)
+         * @description `area_id` is the network_id (e.g. `AKS-001`). Mock-mode short-circuits;
+         *     real-mode enforces per-property access via the parent property.
+         */
+        get: operations["get_area_api_v1_areas__area_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/areas/{area_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-check this network now (bypasses 1-hour rate limit)
+         * @description Hits eero `/network`, `/eeros`, `/devices` for this single area.
+         *     Updates cached state, writes a NetworkStatus row, refreshes EeroDevice
+         *     rows, writes ConnectedDeviceCount rows. Returns the post-call state.
+         */
+        post: operations["post_area_check_api_v1_areas__area_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-check every network in this property now
+         * @description Iterates all common areas under the property and runs the full
+         *     refresh on each. Returns aggregate counts.
+         */
+        post: operations["post_property_check_api_v1_properties__property_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Properties */
+        get: operations["list_properties_api_v1_admin_properties_get"];
+        put?: never;
+        /** Create Property */
+        post: operations["create_property_api_v1_admin_properties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Property */
+        put: operations["update_property_api_v1_admin_properties__property_id__put"];
+        post?: never;
+        /** Delete Property */
+        delete: operations["delete_property_api_v1_admin_properties__property_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/properties/{property_id}/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Common Areas */
+        get: operations["list_common_areas_api_v1_admin_properties__property_id__areas_get"];
+        put?: never;
+        /** Create Common Area */
+        post: operations["create_common_area_api_v1_admin_properties__property_id__areas_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/areas/{area_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Common Area */
+        put: operations["update_common_area_api_v1_admin_areas__area_id__put"];
+        post?: never;
+        /** Delete Common Area */
+        delete: operations["delete_common_area_api_v1_admin_areas__area_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -43,7 +390,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/areas/{area_id}": {
+    "/api/v1/admin/access": {
         parameters: {
             query?: never;
             header?: never;
@@ -51,11 +398,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Common Area */
-        put: operations["update_common_area_api_v1_admin_areas__area_id__put"];
-        post?: never;
-        /** Delete Common Area */
-        delete: operations["delete_common_area_api_v1_admin_areas__area_id__delete"];
+        put?: never;
+        /** Grant Access */
+        post: operations["grant_access_api_v1_admin_access_post"];
+        /** Revoke Access */
+        delete: operations["revoke_access_api_v1_admin_access_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -166,60 +513,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/properties": {
+    "/api/v1/admin/mdu-olt-map": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Properties */
-        get: operations["list_properties_api_v1_admin_properties_get"];
+        /** List Mdu Olt Map */
+        get: operations["list_mdu_olt_map_api_v1_admin_mdu_olt_map_get"];
         put?: never;
-        /** Create Property */
-        post: operations["create_property_api_v1_admin_properties_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/properties/{property_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update Property */
-        put: operations["update_property_api_v1_admin_properties__property_id__put"];
         post?: never;
-        /** Delete Property */
-        delete: operations["delete_property_api_v1_admin_properties__property_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/properties/{property_id}/areas": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Common Area */
-        post: operations["create_common_area_api_v1_admin_properties__property_id__areas_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/areas/{area_id}": {
+    "/api/v1/admin/mdu-olt-map/names": {
         parameters: {
             query?: never;
             header?: never;
@@ -227,11 +538,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Common-area detail (SPEC §5.6)
-         * @description `area_id` is the network_id (e.g. `AKS-001`). Mock-mode short-circuits;
-         *     real-mode enforces per-property access via the parent property.
+         * List Mdu Olt Map Names
+         * @description Distinct MDU names — drives the autocomplete on Add Property.
          */
-        get: operations["get_area_api_v1_areas__area_id__get"];
+        get: operations["list_mdu_olt_map_names_api_v1_admin_mdu_olt_map_names_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -240,174 +550,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login */
-        post: operations["login_api_v1_auth_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Logout */
-        post: operations["logout_api_v1_auth_logout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Me */
-        get: operations["me_api_v1_auth_me_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/dashboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Dashboard
-         * @description Per-user filtered dashboard.
-         *
-         *     Mock path returns the full set (dev convenience). Real path filters
-         *     properties to those the caller has access to.
-         */
-        get: operations["get_dashboard_api_v1_dashboard_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/dashboard/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Server-Sent Events stream of dashboard invalidations (SPEC §5.4)
-         * @description Long-lived SSE connection. Emits:
-         *
-         *       • `hello`              — handshake on connect
-         *       • `dashboard.invalidate` — client should re-fetch `/api/v1/dashboard`
-         *       • `:heartbeat` comments  — keep-alives so proxies don't time out
-         *
-         *     Falls back to 30s polling on the client if the connection drops.
-         */
-        get: operations["get_dashboard_stream_api_v1_dashboard_stream_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/maintenance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Active future scheduled maintenance windows + affected properties
-         * @description SPEC §5.4 — feeds the dashboard's "Scheduled Maintenance" card.
-         */
-        get: operations["get_maintenance_api_v1_maintenance_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/properties/{property_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Property detail (drives the dashboard drawer)
-         * @description Property detail.
-         *
-         *     Mock path uses string IDs ("aks", "prk", …) so we can't pre-validate
-         *     via `require_property_access` (which expects int). The DB path enforces
-         *     per-property access inline.
-         */
-        get: operations["get_property_api_v1_properties__property_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/properties/{property_id}/device-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Connected-devices time series for stacked-area chart
-         * @description Critical, must-retain feature (SPEC §3 / README backend contract).
-         *
-         *     `ssid` omitted → totals (canonical `ssid=""` rows in `connected_device_count`).
-         *     `ssid` present → filtered series. Same timestamps drive both views.
-         */
-        get: operations["get_device_counts_api_v1_properties__property_id__device_counts_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/properties/{property_id}/report": {
+    "/api/v1/admin/mdu-olt-map/upload": {
         parameters: {
             query?: never;
             header?: never;
@@ -417,52 +560,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Generate a PDF WiFi network report for the property (SPEC §5.7)
-         * @description `POST /api/v1/properties/{id}/report` `{ssids: [...]}` → streams PDF.
-         *
-         *     Empty `ssids` means "include all" (matches the current Django app).
+         * Upload Mdu Olt Map
+         * @description Replace the entire MDU↔OLT map with the contents of an uploaded
+         *     .xlsx (the SAG/FDH/EQUIP/SERVING_OLT export). The spreadsheet is the
+         *     source of truth — partial merges aren't supported.
          */
-        post: operations["post_property_report_api_v1_properties__property_id__report_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/properties/{property_id}/ssids": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Distinct SSIDs seen for this property in the window
-         * @description SPEC §7 — feeds the SSID dropdown on the Property Detail page.
-         */
-        get: operations["get_property_ssids_api_v1_properties__property_id__ssids_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Global search across properties, common areas, and network IDs
-         * @description SPEC §5.4 / §8.3 — global search bar in the header / Cmd+K palette.
-         */
-        get: operations["get_search_api_v1_search_get"];
-        put?: never;
-        post?: never;
+        post: operations["upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -516,21 +619,8 @@ export interface components {
         };
         /** AlertItem */
         AlertItem: {
-            /**
-             * Acknowledged
-             * @default false
-             */
-            acknowledged: boolean;
-            /** Device */
-            device?: string | null;
             /** Id */
             id: string;
-            /** Message */
-            message: string;
-            /** Network */
-            network: string;
-            /** Property */
-            property: string;
             /**
              * Severity
              * @enum {string}
@@ -538,56 +628,69 @@ export interface components {
             severity: "critical" | "warning" | "info";
             /** Time */
             time: string;
+            /** Property */
+            property: string;
+            /** Network */
+            network: string;
+            /** Device */
+            device?: string | null;
+            /** Message */
+            message: string;
+            /**
+             * Acknowledged
+             * @default false
+             */
+            acknowledged: boolean;
         };
         /** AreaDetailResponse */
         AreaDetailResponse: {
-            /** Connected Total */
-            connected_total: number;
-            /** Description */
-            description?: string | null;
-            /** Eero Units */
-            eero_units: components["schemas"]["EeroUnitRow"][];
             /** Id */
             id: string;
-            /** Insight Url */
-            insight_url: string;
-            /** Is Online */
-            is_online: boolean;
-            /** Last Checked */
-            last_checked?: string | null;
+            /** Network Id */
+            network_id: string;
             /** Location Name */
             location_name: string;
+            /** Network Name */
+            network_name?: string | null;
+            /** Ssid */
+            ssid?: string | null;
+            /** Wan Ip */
+            wan_ip?: string | null;
             /**
              * Location Type
              * @enum {string}
              */
             location_type: "indoor" | "outdoor";
-            /** Network Id */
-            network_id: string;
-            /** Network Name */
-            network_name?: string | null;
-            /** Property Id */
-            property_id: string;
-            /** Property Name */
-            property_name: string;
-            /** Ssid */
-            ssid?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Is Online */
+            is_online: boolean;
             /**
              * Status
              * @enum {string}
              */
             status: "online" | "degraded" | "offline";
+            /** Last Checked */
+            last_checked?: string | null;
+            /** Property Id */
+            property_id: string;
+            /** Property Name */
+            property_name: string;
+            /** Insight Url */
+            insight_url: string;
+            /** Eero Units */
+            eero_units: components["schemas"]["EeroUnitRow"][];
+            /** Connected Total */
+            connected_total: number;
             /** Status History */
             status_history: components["schemas"]["StatusHistoryPoint"][];
-            /** Wan Ip */
-            wan_ip?: string | null;
         };
         /** AreaPreviewRequest */
         AreaPreviewRequest: {
-            /** Api Endpoint */
-            api_endpoint?: string | null;
             /** Network Id */
             network_id: string;
+            /** Api Endpoint */
+            api_endpoint?: string | null;
         };
         /**
          * AreaPreviewResponse
@@ -598,18 +701,6 @@ export interface components {
          *     use as a sanity check.
          */
         AreaPreviewResponse: {
-            /**
-             * Eero Count
-             * @default 0
-             */
-            eero_count: number;
-            /** Error */
-            error?: string | null;
-            /**
-             * Is Online
-             * @default false
-             */
-            is_online: boolean;
             /** Network Id */
             network_id: string;
             /** Network Name */
@@ -618,6 +709,23 @@ export interface components {
             ssid?: string | null;
             /** Wan Ip */
             wan_ip?: string | null;
+            /**
+             * Eero Count
+             * @default 0
+             */
+            eero_count: number;
+            /**
+             * Is Online
+             * @default false
+             */
+            is_online: boolean;
+            /** Error */
+            error?: string | null;
+        };
+        /** Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post */
+        Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post: {
+            /** File */
+            file: string;
         };
         /** ClliCreate */
         ClliCreate: {
@@ -628,138 +736,138 @@ export interface components {
         };
         /** ClliOut */
         ClliOut: {
+            /** Id */
+            id: number;
             /** Clli Code */
             clli_code: string;
             /** Description */
             description: string | null;
-            /** Id */
-            id: number;
         };
         /** CommonAreaCreate */
         CommonAreaCreate: {
-            /** Api Endpoint */
-            api_endpoint?: string | null;
-            /** Description */
-            description?: string | null;
-            /** Island */
-            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /** Location Name */
             location_name: string;
+            /** Network Id */
+            network_id: string;
+            /** Island */
+            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /**
              * Location Type
              * @default indoor
              * @enum {string}
              */
             location_type: "indoor" | "outdoor";
-            /** Network Id */
-            network_id: string;
+            /** Description */
+            description?: string | null;
+            /** Api Endpoint */
+            api_endpoint?: string | null;
         };
         /** CommonAreaOut */
         CommonAreaOut: {
-            /** Description */
-            description: string | null;
             /** Id */
             id: number;
-            /** Is Online */
-            is_online: boolean;
-            /** Island */
-            island: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
-            /** Last Checked */
-            last_checked: string | null;
+            /** Property Id */
+            property_id: number;
             /** Location Name */
             location_name: string;
+            /** Network Id */
+            network_id: string;
+            /** Island */
+            island: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /**
              * Location Type
              * @enum {string}
              */
             location_type: "indoor" | "outdoor";
-            /** Network Id */
-            network_id: string;
+            /** Description */
+            description: string | null;
             /** Network Name */
             network_name: string | null;
-            /** Property Id */
-            property_id: number;
             /** Ssid */
             ssid: string | null;
             /** Wan Ip */
             wan_ip: string | null;
+            /** Is Online */
+            is_online: boolean;
+            /** Last Checked */
+            last_checked: string | null;
         };
         /** CommonAreaUpdate */
         CommonAreaUpdate: {
-            /** Api Endpoint */
-            api_endpoint?: string | null;
-            /** Description */
-            description?: string | null;
-            /** Island */
-            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /** Location Name */
             location_name?: string | null;
+            /** Island */
+            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /** Location Type */
             location_type?: ("indoor" | "outdoor") | null;
+            /** Description */
+            description?: string | null;
+            /** Api Endpoint */
+            api_endpoint?: string | null;
         };
         /** CurrentUserResponse */
         CurrentUserResponse: {
-            /** Accessible Property Ids */
-            accessible_property_ids?: number[];
-            /** Email */
-            email?: string | null;
             /** Id */
             id: number;
+            /** Username */
+            username: string;
+            /** Email */
+            email?: string | null;
             /** Is Active */
             is_active: boolean;
             /** Is Staff */
             is_staff: boolean;
             /** Is Superuser */
             is_superuser: boolean;
-            /** Username */
-            username: string;
+            /** Accessible Property Ids */
+            accessible_property_ids?: number[];
         };
         /** DashboardResponse */
         DashboardResponse: {
-            /** Alerts */
-            alerts: components["schemas"]["AlertItem"][];
-            /** Available Ssids */
-            available_ssids?: string[];
-            /** Avg Latency Ms */
-            avg_latency_ms: number;
-            /** Degraded Count */
-            degraded_count: number;
             /** Generated At */
             generated_at: string;
+            /** Hst Now */
+            hst_now: string;
+            /** Total Properties */
+            total_properties: number;
+            /** Total Networks */
+            total_networks: number;
+            /** Total Devices */
+            total_devices: number;
+            /** Avg Latency Ms */
+            avg_latency_ms: number;
+            /** Outage Count */
+            outage_count: number;
+            /** Degraded Count */
+            degraded_count: number;
+            /** Online Count */
+            online_count: number;
+            /** Islands */
+            islands: components["schemas"]["IslandSummary"][];
+            /** Properties */
+            properties: components["schemas"]["PropertyPin"][];
+            /** Alerts */
+            alerts: components["schemas"]["AlertItem"][];
+            hero_chart: components["schemas"]["DeviceCountsResponse"];
             /** Heatmap */
             heatmap: number[][];
             heatmap_peak: components["schemas"]["HeatCallout"];
             heatmap_quiet: components["schemas"]["HeatCallout"];
-            hero_chart: components["schemas"]["DeviceCountsResponse"];
-            /** Hst Now */
-            hst_now: string;
-            /** Islands */
-            islands: components["schemas"]["IslandSummary"][];
+            /** Available Ssids */
+            available_ssids?: string[];
             /** Maintenance */
             maintenance?: components["schemas"]["MaintenanceWindow"][];
-            /** Online Count */
-            online_count: number;
-            /** Outage Count */
-            outage_count: number;
-            /** Properties */
-            properties: components["schemas"]["PropertyPin"][];
-            /** Total Devices */
-            total_devices: number;
-            /** Total Networks */
-            total_networks: number;
-            /** Total Properties */
-            total_properties: number;
         };
         /** DeviceCountSeries */
         DeviceCountSeries: {
-            /** Color */
-            color: string;
-            /** Data */
-            data: number[];
             /** Network Id */
             network_id: string;
             /** Network Name */
             network_name: string;
+            /** Color */
+            color: string;
+            /** Data */
+            data: number[];
         };
         /**
          * DeviceCountsResponse
@@ -769,41 +877,34 @@ export interface components {
          *     use a single component for both views.
          */
         DeviceCountsResponse: {
+            /** Timestamps */
+            timestamps: string[];
             /** Series */
             series: components["schemas"]["DeviceCountSeries"][];
             /** Ssid */
             ssid?: string | null;
-            /** Timestamps */
-            timestamps: string[];
         };
         /** DeviceRow */
         DeviceRow: {
-            /** Firmware Version */
-            firmware_version?: string | null;
-            /** Location Type */
-            location_type?: ("indoor" | "outdoor") | null;
+            /** Name */
+            name: string;
             /** Mac */
             mac: string;
             /** Model */
             model: string;
-            /** Name */
-            name: string;
-            /** Online */
-            online: boolean;
             /** Rssi */
             rssi: number;
+            /** Online */
+            online: boolean;
+            /** Firmware Version */
+            firmware_version?: string | null;
+            /** Location Type */
+            location_type?: ("indoor" | "outdoor") | null;
         };
         /** EeroUnitRow */
         EeroUnitRow: {
-            /**
-             * Connected Count
-             * @default 0
-             */
-            connected_count: number;
-            /** Firmware Version */
-            firmware_version?: string | null;
-            /** Is Online */
-            is_online: boolean;
+            /** Serial */
+            serial: string;
             /** Location */
             location?: string | null;
             /**
@@ -813,27 +914,34 @@ export interface components {
             location_type: "indoor" | "outdoor";
             /** Model */
             model?: string | null;
-            /** Serial */
-            serial: string;
+            /** Firmware Version */
+            firmware_version?: string | null;
+            /** Is Online */
+            is_online: boolean;
+            /**
+             * Connected Count
+             * @default 0
+             */
+            connected_count: number;
         };
         /** GrantOut */
         GrantOut: {
+            /** User Id */
+            user_id: number;
+            /** Property Id */
+            property_id: number;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Property Id */
-            property_id: number;
-            /** User Id */
-            user_id: number;
         };
         /** GrantRequest */
         GrantRequest: {
-            /** Property Id */
-            property_id: number;
             /** User Id */
             user_id: number;
+            /** Property Id */
+            property_id: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -842,17 +950,15 @@ export interface components {
         };
         /** HeatCallout */
         HeatCallout: {
-            /** Count */
-            count: number;
             /** Day */
             day: string;
             /** Hour */
             hour: number;
+            /** Count */
+            count: number;
         };
         /** IslandSummary */
         IslandSummary: {
-            /** Devices */
-            devices: number;
             /**
              * Island
              * @enum {string}
@@ -860,12 +966,14 @@ export interface components {
             island: "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai";
             /** Label */
             label: string;
-            /** Networks */
-            networks: number;
-            /** Offline */
-            offline: number;
             /** Properties */
             properties: number;
+            /** Networks */
+            networks: number;
+            /** Devices */
+            devices: number;
+            /** Offline */
+            offline: number;
             /**
              * Status
              * @enum {string}
@@ -874,66 +982,66 @@ export interface components {
         };
         /** LoginRequest */
         LoginRequest: {
-            /** Password */
-            password: string;
             /** Username */
             username: string;
+            /** Password */
+            password: string;
         };
         /** MaintenanceCreate */
         MaintenanceCreate: {
+            /**
+             * Island
+             * @enum {string}
+             */
+            island: "all" | "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii";
+            /**
+             * Scheduled
+             * Format: date-time
+             */
+            scheduled: string;
             /**
              * Is Active
              * @default true
              */
             is_active: boolean;
-            /**
-             * Island
-             * @enum {string}
-             */
-            island: "all" | "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii";
             /** Olt Clli Codes */
             olt_clli_codes?: string[];
-            /**
-             * Scheduled
-             * Format: date-time
-             */
-            scheduled: string;
             /** Seven Fifty Clli Codes */
             seven_fifty_clli_codes?: string[];
         };
         /** MaintenanceOut */
         MaintenanceOut: {
-            /** Affected Properties */
-            affected_properties?: components["schemas"]["AffectedPropertyOut"][];
             /** Id */
             id: number;
-            /** Is Active */
-            is_active: boolean;
             /**
              * Island
              * @enum {string}
              */
             island: "all" | "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii";
-            /** Olt Clli Codes */
-            olt_clli_codes?: string[];
             /**
              * Scheduled
              * Format: date-time
              */
             scheduled: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Olt Clli Codes */
+            olt_clli_codes?: string[];
             /** Seven Fifty Clli Codes */
             seven_fifty_clli_codes?: string[];
+            /** Affected Properties */
+            affected_properties?: components["schemas"]["AffectedPropertyOut"][];
         };
         /** MaintenanceUpdate */
         MaintenanceUpdate: {
-            /** Is Active */
-            is_active?: boolean | null;
             /** Island */
             island?: ("all" | "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
-            /** Olt Clli Codes */
-            olt_clli_codes?: string[] | null;
             /** Scheduled */
             scheduled?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Olt Clli Codes */
+            olt_clli_codes?: string[] | null;
             /** Seven Fifty Clli Codes */
             seven_fifty_clli_codes?: string[] | null;
         };
@@ -943,61 +1051,119 @@ export interface components {
          *     card. Full admin shape lives in `schemas/maintenance.py`.
          */
         MaintenanceWindow: {
-            /** Affected Property Names */
-            affected_property_names?: string[];
             /** Id */
             id: number;
             /** Island */
             island: string;
-            /** Olt Clli Codes */
-            olt_clli_codes?: string[];
             /** Scheduled */
             scheduled: string;
+            /** Olt Clli Codes */
+            olt_clli_codes?: string[];
             /** Seven Fifty Clli Codes */
             seven_fifty_clli_codes?: string[];
+            /** Affected Property Names */
+            affected_property_names?: string[];
+        };
+        /**
+         * MduOltInfo
+         * @description Populated when the property's name matches an entry in the uploaded
+         *     MDU↔OLT map (admin → MDU Map upload).
+         */
+        MduOltInfo: {
+            /** Mdu Name */
+            mdu_name: string;
+            /** Fdh Name */
+            fdh_name?: string | null;
+            /** Olt Clli */
+            olt_clli?: string | null;
+            /** Olt Type */
+            olt_type?: string | null;
+            /** Seven Fifty */
+            seven_fifty?: string | null;
+            /** Seven Fifty Model */
+            seven_fifty_model?: string | null;
+        };
+        /** MduOltMapOut */
+        MduOltMapOut: {
+            /** Id */
+            id: number;
+            /** Mdu Name */
+            mdu_name: string;
+            /** Fdh Name */
+            fdh_name?: string | null;
+            /** Equip Name */
+            equip_name?: string | null;
+            /** Serving Olt */
+            serving_olt?: string | null;
+            /** Equip Name 1 */
+            equip_name_1?: string | null;
+            /** Equip Model */
+            equip_model?: string | null;
+        };
+        /** MduOltMapUploadResponse */
+        MduOltMapUploadResponse: {
+            /** Rows Imported */
+            rows_imported: number;
+            /** Distinct Mdus */
+            distinct_mdus: number;
         };
         /** NetworkRow */
         NetworkRow: {
-            /** Color */
-            color: string;
-            /** Description */
-            description?: string | null;
-            /** Devices */
-            devices: number;
-            /** Last Checked */
-            last_checked?: string | null;
-            /** Location Type */
-            location_type?: ("indoor" | "outdoor") | null;
-            /** Name */
-            name: string;
             /** Network Id */
             network_id: string;
+            /** Name */
+            name: string;
             /**
              * Status
              * @enum {string}
              */
             status: "online" | "degraded" | "offline";
+            /** Devices */
+            devices: number;
+            /** Color */
+            color: string;
+            /** Location Type */
+            location_type?: ("indoor" | "outdoor") | null;
+            /** Description */
+            description?: string | null;
+            /** Last Checked */
+            last_checked?: string | null;
         };
         /** PropertyCreate */
         PropertyCreate: {
-            /** Address */
-            address?: string | null;
             /** Name */
             name: string;
+            /** Address */
+            address?: string | null;
         };
         /** PropertyDetailResponse */
         PropertyDetailResponse: {
-            /** Address */
-            address?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Island
+             * @enum {string}
+             */
+            island: "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai";
             /** Central Office */
             central_office: string;
-            chart: components["schemas"]["DeviceCountsResponse"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "offline";
+            /** Address */
+            address?: string | null;
             /** Created At */
             created_at?: string | null;
-            /** Devices */
-            devices: components["schemas"]["DeviceRow"][];
+            /** Networks Count */
+            networks_count: number;
             /** Devices Count */
             devices_count: number;
+            /** Uptime Pct */
+            uptime_pct: number;
             /** Eero Models */
             eero_models?: {
                 [key: string]: number;
@@ -1006,64 +1172,64 @@ export interface components {
             firmware_versions?: {
                 [key: string]: number;
             };
-            /** Id */
-            id: string;
-            /**
-             * Island
-             * @enum {string}
-             */
-            island: "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai";
-            /** Name */
-            name: string;
+            chart: components["schemas"]["DeviceCountsResponse"];
             /** Networks */
             networks: components["schemas"]["NetworkRow"][];
-            /** Networks Count */
-            networks_count: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "online" | "degraded" | "offline";
-            /** Uptime Pct */
-            uptime_pct: number;
+            /** Devices */
+            devices: components["schemas"]["DeviceRow"][];
+            mdu_olt?: components["schemas"]["MduOltInfo"] | null;
         };
         /** PropertyOut */
         PropertyOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
             /** Address */
             address: string | null;
-            /**
-             * Common Areas Count
-             * @default 0
-             */
-            common_areas_count: number;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Common Areas Count
+             * @default 0
+             */
+            common_areas_count: number;
         };
         /** PropertyPin */
         PropertyPin: {
-            /** Central Office */
-            central_office: string;
-            /** Devices */
-            devices: number;
             /** Id */
             id: string;
+            /** Name */
+            name: string;
             /**
              * Island
              * @enum {string}
              */
             island: "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai";
+            /** Central Office */
+            central_office: string;
+            /** Networks */
+            networks: number;
+            /** Devices */
+            devices: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "offline";
+            /**
+             * Offline Count
+             * @default 0
+             */
+            offline_count: number;
             /**
              * Lat
              * @description 0..1 normalized for the map SVG
@@ -1074,29 +1240,15 @@ export interface components {
              * @description 0..1 normalized for the map SVG
              */
             lng: number;
-            /** Name */
-            name: string;
-            /** Networks */
-            networks: number;
-            /**
-             * Offline Count
-             * @default 0
-             */
-            offline_count: number;
             /** Spark */
             spark?: number[];
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "online" | "degraded" | "offline";
         };
         /** PropertyUpdate */
         PropertyUpdate: {
-            /** Address */
-            address?: string | null;
             /** Name */
             name?: string | null;
+            /** Address */
+            address?: string | null;
         };
         /**
          * ReportRequest
@@ -1123,14 +1275,14 @@ export interface components {
              * @enum {string}
              */
             kind: "property" | "area" | "network_id";
-            /** Label */
-            label: string;
-            /** Network Id */
-            network_id?: string | null;
             /** Property Id */
             property_id: string;
+            /** Label */
+            label: string;
             /** Sublabel */
             sublabel?: string | null;
+            /** Network Id */
+            network_id?: string | null;
         };
         /** StatusHistoryPoint */
         StatusHistoryPoint: {
@@ -1143,16 +1295,16 @@ export interface components {
         };
         /** ValidationError */
         ValidationError: {
-            /** Context */
-            ctx?: Record<string, never>;
-            /** Input */
-            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -1163,7 +1315,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    grant_access_api_v1_admin_access_post: {
+    login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1172,40 +1324,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GrantRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrantOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    revoke_access_api_v1_admin_access_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GrantRequest"];
+                "application/json": components["schemas"]["LoginRequest"];
             };
         };
         responses: {
@@ -1227,16 +1346,258 @@ export interface operations {
             };
         };
     };
-    preview_area_api_v1_admin_areas_preview_post: {
+    logout_api_v1_auth_logout_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+        };
+    };
+    get_maintenance_api_v1_maintenance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown[];
+                };
+            };
+        };
+    };
+    get_search_api_v1_search_get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dashboard_stream_api_v1_dashboard_stream_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_dashboard_api_v1_dashboard_get: {
+        parameters: {
+            query?: {
+                island?: string | null;
+                days?: number;
+                ssid?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_device_counts_api_v1_properties__property_id__device_counts_get: {
+        parameters: {
+            query?: {
+                days?: number;
+                ssid?: string | null;
+            };
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCountsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_ssids_api_v1_properties__property_id__ssids_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_properties__property_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_property_report_api_v1_properties__property_id__report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AreaPreviewRequest"];
+                "application/json": components["schemas"]["ReportRequest"];
             };
         };
         responses: {
@@ -1246,7 +1607,287 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AreaPreviewResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_area_api_v1_areas__area_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                area_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AreaDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_area_check_api_v1_areas__area_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                area_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_property_check_api_v1_properties__property_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_properties_api_v1_admin_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"][];
+                };
+            };
+        };
+    };
+    create_property_api_v1_admin_properties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_api_v1_admin_properties__property_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_property_api_v1_admin_properties__property_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_common_areas_api_v1_admin_properties__property_id__areas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommonAreaOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_common_area_api_v1_admin_properties__property_id__areas_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommonAreaCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommonAreaOut"];
                 };
             };
             /** @description Validation Error */
@@ -1305,6 +1946,103 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_area_api_v1_admin_areas_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AreaPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AreaPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grant_access_api_v1_admin_access_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrantOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_access_api_v1_admin_access_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -1585,7 +2323,7 @@ export interface operations {
             };
         };
     };
-    list_properties_api_v1_admin_properties_get: {
+    list_mdu_olt_map_api_v1_admin_mdu_olt_map_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1600,425 +2338,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyOut"][];
+                    "application/json": components["schemas"]["MduOltMapOut"][];
                 };
             };
         };
     };
-    create_property_api_v1_admin_properties_post: {
+    list_mdu_olt_map_names_api_v1_admin_mdu_olt_map_names_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PropertyCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropertyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_property_api_v1_admin_properties__property_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                property_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PropertyUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropertyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_property_api_v1_admin_properties__property_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                property_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_common_area_api_v1_admin_properties__property_id__areas_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                property_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommonAreaCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommonAreaOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_area_api_v1_areas__area_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                area_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AreaDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    login_api_v1_auth_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    logout_api_v1_auth_logout_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    me_api_v1_auth_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CurrentUserResponse"];
-                };
-            };
-        };
-    };
-    get_dashboard_api_v1_dashboard_get: {
-        parameters: {
-            query?: {
-                island?: string | null;
-                days?: number;
-                ssid?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DashboardResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_dashboard_stream_api_v1_dashboard_stream_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    get_maintenance_api_v1_maintenance_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown[];
-                };
-            };
-        };
-    };
-    get_property_api_v1_properties__property_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                property_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropertyDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_device_counts_api_v1_properties__property_id__device_counts_get: {
-        parameters: {
-            query?: {
-                days?: number;
-                ssid?: string | null;
-            };
-            header?: never;
-            path: {
-                property_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeviceCountsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_property_report_api_v1_properties__property_id__report_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                property_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReportRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_property_ssids_api_v1_properties__property_id__ssids_get: {
-        parameters: {
-            query?: {
-                days?: number;
-            };
-            header?: never;
-            path: {
-                property_id: string;
-            };
             cookie?: never;
         };
         requestBody?: never;
@@ -2032,27 +2361,20 @@ export interface operations {
                     "application/json": string[];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
-    get_search_api_v1_search_get: {
+    upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post: {
         parameters: {
-            query?: {
-                q?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_mdu_olt_map_api_v1_admin_mdu_olt_map_upload_post"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2060,7 +2382,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SearchResponse"];
+                    "application/json": components["schemas"]["MduOltMapUploadResponse"];
                 };
             };
             /** @description Validation Error */

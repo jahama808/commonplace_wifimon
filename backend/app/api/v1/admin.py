@@ -4,7 +4,7 @@ All routes require an authenticated staff or superuser caller.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from app.api.deps import require_staff
 from app.core.config import settings
 from app.db.session import get_session
 from app.models.common_area import CommonArea
+from app.models.mdu_olt_map import MduOltMap
 from app.models.property import Property
 from app.models.user import User
 from app.schemas.admin import (
@@ -22,6 +23,8 @@ from app.schemas.admin import (
     CommonAreaUpdate,
     GrantOut,
     GrantRequest,
+    MduOltMapOut,
+    MduOltMapUploadResponse,
     PropertyCreate,
     PropertyOut,
     PropertyUpdate,
@@ -36,6 +39,7 @@ from app.schemas.maintenance import (
 )
 from app.services import admin as svc
 from app.services import maintenance as msvc
+from app.services import mdu_olt_map as mdu_svc
 
 
 async def _refuse_in_mock_mode() -> None:
@@ -384,3 +388,68 @@ async def delete_maintenance(
     if m is None:
         raise HTTPException(status_code=404, detail="maintenance not found")
     await msvc.delete_maintenance(session, m)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MDU↔OLT map (uploaded spreadsheet)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _mdu_out(row: MduOltMap) -> MduOltMapOut:
+    return MduOltMapOut(
+        id=row.id,
+        mdu_name=row.mdu_name,
+        fdh_name=row.fdh_name,
+        equip_name=row.equip_name,
+        serving_olt=row.serving_olt,
+        equip_name_1=row.equip_name_1,
+        equip_model=row.equip_model,
+    )
+
+
+@router.get("/mdu-olt-map", response_model=list[MduOltMapOut])
+async def list_mdu_olt_map(
+    _staff: User = Depends(require_staff),
+    session: AsyncSession = Depends(get_session),
+) -> list[MduOltMapOut]:
+    rows = (
+        await session.execute(
+            select(MduOltMap).order_by(MduOltMap.mdu_name, MduOltMap.equip_name)
+        )
+    ).scalars().all()
+    return [_mdu_out(r) for r in rows]
+
+
+@router.get("/mdu-olt-map/names", response_model=list[str])
+async def list_mdu_olt_map_names(
+    _staff: User = Depends(require_staff),
+    session: AsyncSession = Depends(get_session),
+) -> list[str]:
+    """Distinct MDU names — drives the autocomplete on Add Property."""
+    return await mdu_svc.distinct_mdu_names(session)
+
+
+@router.post("/mdu-olt-map/upload", response_model=MduOltMapUploadResponse)
+async def upload_mdu_olt_map(
+    file: UploadFile = File(...),
+    _staff: User = Depends(require_staff),
+    session: AsyncSession = Depends(get_session),
+) -> MduOltMapUploadResponse:
+    """Replace the entire MDU↔OLT map with the contents of an uploaded
+    .xlsx (the SAG/FDH/EQUIP/SERVING_OLT export). The spreadsheet is the
+    source of truth — partial merges aren't supported."""
+    name = (file.filename or "").lower()
+    if not name.endswith(".xlsx"):
+        raise HTTPException(
+            status_code=400,
+            detail=".xlsx required (got '{}')".format(file.filename or "unnamed"),
+        )
+    body = await file.read()
+    try:
+        records = mdu_svc.parse_xlsx(body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    inserted = await mdu_svc.replace_all(session, records)
+    distinct = len({r["mdu_name"] for r in records})
+    return MduOltMapUploadResponse(rows_imported=inserted, distinct_mdus=distinct)

@@ -33,6 +33,7 @@ export type MaintenanceWindow = Schemas['MaintenanceWindow'];
 export type PropertyDetailResponse = Schemas['PropertyDetailResponse'];
 export type NetworkRow = Schemas['NetworkRow'];
 export type DeviceRow = Schemas['DeviceRow'];
+export type MduOltInfo = Schemas['MduOltInfo'];
 
 // Area detail page (SPEC §5.6)
 export type AreaDetailResponse = Schemas['AreaDetailResponse'];
@@ -55,6 +56,8 @@ export type GrantRequest = Schemas['GrantRequest'];
 export type MaintenanceCreate = Schemas['MaintenanceCreate'];
 export type MaintenanceOut = Schemas['MaintenanceOut'];
 export type MaintenanceUpdate = Schemas['MaintenanceUpdate'];
+export type MduOltMapOut = Schemas['MduOltMapOut'];
+export type MduOltMapUploadResponse = Schemas['MduOltMapUploadResponse'];
 
 // Search
 export type SearchResponse = Schemas['SearchResponse'];

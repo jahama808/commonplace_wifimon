@@ -17,8 +17,14 @@ from app.models.connected_device_count import ConnectedDeviceCount
 from app.models.network_status import NetworkStatus
 from app.models.property import Property
 from app.schemas.dashboard import DeviceCountSeries, DeviceCountsResponse
-from app.schemas.property_detail import DeviceRow, NetworkRow, PropertyDetailResponse
+from app.schemas.property_detail import (
+    DeviceRow,
+    MduOltInfo,
+    NetworkRow,
+    PropertyDetailResponse,
+)
 from app.services.dashboard_aggregation import island_slug, status_rollup
+from app.services.mdu_olt_map import lookup_by_property_name
 from app.services.mock_dashboard import color_for_network
 
 
@@ -65,6 +71,20 @@ async def build_property_detail_db(
     )
     primary_island = p.common_areas[0].island if p.common_areas else None
 
+    mdu_match = await lookup_by_property_name(session, p.name)
+    mdu_olt = (
+        MduOltInfo(
+            mdu_name=mdu_match.mdu_name,
+            fdh_name=mdu_match.fdh_name,
+            olt_clli=mdu_match.equip_name,
+            olt_type=mdu_match.serving_olt,
+            seven_fifty=mdu_match.equip_name_1,
+            seven_fifty_model=mdu_match.equip_model,
+        )
+        if mdu_match
+        else None
+    )
+
     return PropertyDetailResponse(
         id=str(p.id),
         name=p.name,
@@ -77,6 +97,7 @@ async def build_property_detail_db(
         chart=chart,
         networks=networks,
         devices=devices,
+        mdu_olt=mdu_olt,
     )
 
 

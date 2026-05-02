@@ -110,7 +110,15 @@ export function PropertyDetailClient({ propertyId }: Props) {
             style={{ letterSpacing: '0.14em' }}
           >
             {detail
-              ? `${detail.island.toUpperCase().replace('-', ' ')} · ${detail.central_office}`
+              ? [
+                  detail.island.toUpperCase().replace('-', ' '),
+                  detail.central_office,
+                  // OLT info from the uploaded MDU map — only when name matched
+                  detail.mdu_olt?.olt_clli,
+                  detail.mdu_olt?.olt_type,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
               : '—'}
           </div>
           <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] sm:text-[18px]">
