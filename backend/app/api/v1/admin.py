@@ -156,6 +156,25 @@ def _ca_out(ca: CommonArea) -> CommonAreaOut:
     )
 
 
+@router.get("/properties/{property_id}/areas", response_model=list[CommonAreaOut])
+async def list_common_areas(
+    property_id: int = Path(..., ge=1),
+    _staff: User = Depends(require_staff),
+    session: AsyncSession = Depends(get_session),
+) -> list[CommonAreaOut]:
+    p = await svc.get_property(session, property_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="property not found")
+    rows = (
+        await session.execute(
+            select(CommonArea)
+            .where(CommonArea.property_id == property_id)
+            .order_by(CommonArea.location_name)
+        )
+    ).scalars().all()
+    return [_ca_out(ca) for ca in rows]
+
+
 @router.post(
     "/properties/{property_id}/areas",
     response_model=CommonAreaOut,

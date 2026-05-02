@@ -103,7 +103,10 @@ function PropertiesTab() {
           onSelect={setSelectedId}
         />
         {selectedId != null && (
-          <AreaForm propertyId={selectedId} />
+          <>
+            <ExistingAreasList propertyId={selectedId} />
+            <AreaForm propertyId={selectedId} />
+          </>
         )}
       </div>
       <div className="space-y-4">
@@ -252,6 +255,87 @@ function NewPropertyCard() {
   );
 }
 
+function ExistingAreasList({ propertyId }: { propertyId: number }) {
+  const queryClient = useQueryClient();
+  const areas = useQuery({
+    queryKey: ['admin', 'areas', propertyId],
+    queryFn: () => adminApi.listAreas(propertyId),
+  });
+  const del = useMutation({
+    mutationFn: (id: number) => adminApi.deleteArea(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'areas', propertyId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
+    },
+  });
+
+  return (
+    <div className="card flex flex-col">
+      <div className="card-hd border-b border-line">
+        <div>
+          <h3>Common Areas</h3>
+          <div className="sub">
+            {areas.isLoading ? '…' : `${areas.data?.length ?? 0} TOTAL`}
+          </div>
+        </div>
+      </div>
+      <ul className="divide-y divide-line">
+        {areas.isLoading && (
+          <li className="px-5 py-8 text-center text-[13px] text-text-3">Loading…</li>
+        )}
+        {areas.error && !areas.isLoading && (
+          <li className="px-5 py-3 text-[13px] text-bad">
+            {(areas.error as Error).message}
+          </li>
+        )}
+        {!areas.isLoading && !areas.error && (areas.data?.length ?? 0) === 0 && (
+          <li className="px-5 py-8 text-center text-[13px] text-text-3">
+            No common areas yet. Use the form below to add one.
+          </li>
+        )}
+        {(areas.data ?? []).map((ca) => (
+          <li key={ca.id} className="flex items-center gap-3 px-5 py-3">
+            <a
+              href={`/areas/${ca.network_id}?from=${propertyId}`}
+              className="min-w-0 flex-1"
+            >
+              <div className="text-[14px] font-medium">{ca.location_name}</div>
+              <div className="mono mt-[2px] truncate text-[10.5px] text-text-3">
+                {ca.network_id}
+                {ca.island ? ` · ${ca.island}` : ''}
+                {' · '}
+                {ca.location_type}
+              </div>
+            </a>
+            <span
+              className={cn(
+                'badge-glow',
+                ca.is_online ? 'good' : 'bad',
+              )}
+            >
+              {ca.is_online ? 'ONLINE' : 'OFFLINE'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`Delete common area "${ca.location_name}"?`)) {
+                  del.mutate(ca.id);
+                }
+              }}
+              aria-label={`Delete ${ca.location_name}`}
+              className="rounded-full p-2 text-text-3 transition-colors hover:bg-bg-2 hover:text-bad"
+              title="Delete common area"
+            >
+              <Trash2 size={14} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
 function AreaForm({ propertyId }: { propertyId: number }) {
   const queryClient = useQueryClient();
   const [networkId, setNetworkId] = useState('');
@@ -280,6 +364,7 @@ function AreaForm({ propertyId }: { propertyId: number }) {
       setLocationName('');
       setPreview(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'areas', propertyId] });
     },
   });
 

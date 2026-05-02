@@ -62,6 +62,8 @@ export const adminApi = {
     call<void>('DELETE', `/admin/properties/${id}`),
 
   // Common areas
+  listAreas: (propertyId: number) =>
+    call<CommonAreaOut[]>('GET', `/admin/properties/${propertyId}/areas`),
   createArea: (propertyId: number, body: CommonAreaCreate) =>
     call<CommonAreaOut>('POST', `/admin/properties/${propertyId}/areas`, body),
   updateArea: (id: number, body: CommonAreaUpdate) =>
