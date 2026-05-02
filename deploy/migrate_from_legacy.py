@@ -354,12 +354,20 @@ def copy_network_statuses(src, dst) -> int:
                 batch = r.fetchmany(BATCH)
                 if not batch:
                     break
+                # raw_response is JSONB on both sides — psycopg2 returns it
+                # as a dict, but won't auto-adapt dicts on INSERT. Wrap in
+                # Json() so it's serialized to a jsonb literal.
+                wrapped = [
+                    (id_, ca_id, online, checked, rt_ms, err,
+                     psycopg2.extras.Json(raw) if raw is not None else None)
+                    for (id_, ca_id, online, checked, rt_ms, err, raw) in batch
+                ]
                 psycopg2.extras.execute_batch(
                     w,
                     "INSERT INTO network_statuses (id, common_area_id, is_online, "
                     "checked_at, response_time_ms, error_message, raw_response) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                    batch,
+                    wrapped,
                 )
                 total += len(batch)
                 print(f"\r    network_statuses: {total}", end="", flush=True)
