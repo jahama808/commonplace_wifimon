@@ -14,7 +14,8 @@ const HST_FORMATTER = new Intl.DateTimeFormat('en-US', {
 
 export function hawaiianGreeting(now: Date = new Date()): string {
   const hour = Number(HST_FORMATTER.format(now));
-  if (hour >= 5 && hour < 12) return 'Aloha Kakahiaka';
-  if (hour >= 12 && hour < 18) return 'Aloha Auinala';
+  if (hour >= 3 && hour < 10) return 'Aloha Kakahiaka';
+  if (hour >= 10 && hour < 14) return 'Aloha Awakea';
+  if (hour >= 14 && hour < 18) return 'Aloha ʻAuinala';
   return 'Aloha Ahiahi';
 }
