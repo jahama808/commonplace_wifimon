@@ -9,15 +9,31 @@ const SEV_DOT: Record<string, string> = {
   info: 'bg-accent shadow-[0_0_calc(6px*var(--glow))_var(--accent)]',
 };
 
-export function AlertsFeed({ alerts }: { alerts: AlertItem[] }) {
+interface Props {
+  alerts: AlertItem[];
+  totalCount?: number;
+  onMarkAllRead?: () => void;
+}
+
+export function AlertsFeed({ alerts, totalCount, onMarkAllRead }: Props) {
+  const total = totalCount ?? alerts.length;
+  const dismissed = Math.max(0, total - alerts.length);
   return (
     <div className="card flex flex-col overflow-hidden">
       <div className="card-hd border-b border-line">
         <div>
           <h3>Live Alerts</h3>
-          <div className="sub">{alerts.length} ACTIVE · LAST 24H</div>
+          <div className="sub">
+            {alerts.length} UNREAD · LAST 24H
+            {dismissed > 0 ? ` · ${dismissed} READ` : ''}
+          </div>
         </div>
-        <button className="text-[11px] text-text-2 hover:text-text-1" type="button">
+        <button
+          type="button"
+          onClick={onMarkAllRead}
+          disabled={alerts.length === 0 || !onMarkAllRead}
+          className="text-[11px] text-text-2 transition-colors hover:text-text-1 disabled:cursor-not-allowed disabled:opacity-40"
+        >
           Mark all read
         </button>
       </div>
@@ -46,7 +62,9 @@ export function AlertsFeed({ alerts }: { alerts: AlertItem[] }) {
         ))}
         {alerts.length === 0 && (
           <li className="px-6 py-12 text-center text-text-2">
-            No alerts in the last 24h — you&apos;re good.
+            {dismissed > 0
+              ? 'All caught up — no unread alerts.'
+              : "No alerts in the last 24h — you're good."}
           </li>
         )}
       </ul>

@@ -71,6 +71,17 @@ async def build_property_detail_db(
     )
     primary_island = p.common_areas[0].island if p.common_areas else None
 
+    # Aggregate eero model + firmware across every unit on the property —
+    # feeds the two side panels on the property detail page (SPEC §5.5).
+    eero_models: dict[str, int] = {}
+    firmware_versions: dict[str, int] = {}
+    for ca in p.common_areas:
+        for d in ca.eero_devices:
+            model_key = d.model or "Unknown"
+            eero_models[model_key] = eero_models.get(model_key, 0) + 1
+            fw_key = d.firmware_version or "Unknown"
+            firmware_versions[fw_key] = firmware_versions.get(fw_key, 0) + 1
+
     mdu_match = await lookup_by_property_name(session, p.name)
     mdu_olt = (
         MduOltInfo(
@@ -97,6 +108,8 @@ async def build_property_detail_db(
         chart=chart,
         networks=networks,
         devices=devices,
+        eero_models=eero_models,
+        firmware_versions=firmware_versions,
         mdu_olt=mdu_olt,
     )
 

@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchDashboard } from '@/lib/api';
+import { useAlertReadState } from '@/lib/use-alert-read-state';
 import { fetchCurrentUser, hawaiianGreeting } from '@/lib/auth-api';
 import { useDashboardStream } from '@/lib/use-dashboard-stream';
 import { SearchPalette } from './SearchPalette';
@@ -135,6 +136,9 @@ export function DashboardClient() {
   }).format(new Date());
   const greeting = hawaiianGreeting();
 
+  const alerts = useMemo(() => data?.alerts ?? [], [data?.alerts]);
+  const { unread, tickerAlerts, markAllRead } = useAlertReadState(alerts);
+
   return (
     <div className="min-h-screen bg-bg-0 text-text-0">
       <Header
@@ -146,7 +150,7 @@ export function DashboardClient() {
         lastEventAt={lastEventAt}
         onOpenSearch={() => setSearchOpen(true)}
       />
-      <AlertsTicker alerts={data?.alerts ?? []} />
+      <AlertsTicker alerts={tickerAlerts} />
       <main className="mx-auto max-w-[1440px] px-4 py-6 lg:px-8">
         <div className="mb-5 flex flex-wrap items-baseline justify-between gap-4">
           <div>
@@ -240,7 +244,7 @@ export function DashboardClient() {
                 />
               </ErrorBoundary>
               <ErrorBoundary label="alerts feed" onRetry={refetchDashboard}>
-                <AlertsFeed alerts={data.alerts} />
+                <AlertsFeed alerts={unread} totalCount={alerts.length} onMarkAllRead={markAllRead} />
               </ErrorBoundary>
             </div>
             <ErrorBoundary label="scheduled maintenance" onRetry={refetchDashboard}>

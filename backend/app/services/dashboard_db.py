@@ -58,7 +58,10 @@ async def build_dashboard_db(
     properties_q = (
         select(Property)
         .options(
-            selectinload(Property.common_areas),
+            # `_area_effectively_online` walks each area's eero_devices; load
+            # them eagerly so we don't fire one lazy SELECT per area inside
+            # the request handler.
+            selectinload(Property.common_areas).selectinload(CommonArea.eero_devices),
             # `_central_office` reads `p.olt_cllis[0]` synchronously; without
             # eager loading SQLAlchemy emits a sync lazy-load mid-request and
             # asyncpg raises MissingGreenlet.
@@ -150,6 +153,21 @@ async def _maintenance_windows(session: AsyncSession) -> list[MaintenanceWindow]
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def _area_effectively_online(ca: CommonArea) -> bool:
+    """A common area is only 'online' for rollup purposes if the eero
+    `/network` reachability says so AND at least one of its eero units is
+    actually online (when units are known). The Pakalana case taught us
+    that the cloud `/network` can return 200 long after every physical
+    eero has been chronic-offline for months — the rollup shouldn't paint
+    that property green."""
+    if not ca.is_online:
+        return False
+    if not ca.eero_devices:
+        # No units recorded — fall back to the network-level signal.
+        return True
+    return any(d.is_online for d in ca.eero_devices)
+
+
 def _property_status(p: Property) -> tuple[str, str, int]:
     if not p.common_areas:
         return "oahu", "online", 0
@@ -161,7 +179,7 @@ def _property_status(p: Property) -> tuple[str, str, int]:
     primary_island = max(counts, key=counts.get)
     slug = island_slug(primary_island)
     status, offline = status_rollup(
-        [ca.is_online for ca in p.common_areas],
+        [_area_effectively_online(ca) for ca in p.common_areas],
         [ca.is_chronic for ca in p.common_areas],
     )
     return slug, status, offline
