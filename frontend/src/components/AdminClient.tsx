@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronRight, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
@@ -134,6 +134,7 @@ function PropertyList({
   onSelect: (id: number) => void;
 }) {
   const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<number | null>(null);
   const del = useMutation({
     mutationFn: (id: number) => adminApi.deleteProperty(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] }),
@@ -161,52 +162,214 @@ function PropertyList({
             No properties yet. Use the form on the right to add one.
           </li>
         )}
-        {properties.map((p) => (
-          <li
-            key={p.id}
-            className={cn(
-              'flex items-center gap-3 px-5 py-3',
-              selectedId === p.id && 'bg-bg-2',
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => onSelect(p.id)}
-              className="flex flex-1 items-center gap-3 text-left"
-            >
-              <ChevronRight
-                size={14}
-                className={cn(
-                  'flex-shrink-0 text-text-3 transition-transform',
-                  selectedId === p.id && 'rotate-90 text-text-1',
-                )}
+        {properties.map((p) =>
+          editingId === p.id ? (
+            <li key={p.id} className="bg-bg-2 px-5 py-3">
+              <PropertyEditRow
+                property={p}
+                onCancel={() => setEditingId(null)}
+                onSaved={() => setEditingId(null)}
               />
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-medium">{p.name}</div>
-                <div className="mono mt-[2px] truncate text-[10.5px] text-text-3">
-                  ID {p.id}
-                  {p.address ? ` · ${p.address}` : ''}
-                </div>
-              </div>
-              <span className="badge-glow accent">{p.common_areas_count} AREAS</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm(`Delete "${p.name}" and all its common areas?`)) {
-                  del.mutate(p.id);
-                }
-              }}
-              aria-label={`Delete ${p.name}`}
-              className="rounded-full p-2 text-text-3 transition-colors hover:bg-bg-2 hover:text-bad"
-              title="Delete property (cascade)"
+            </li>
+          ) : (
+            <li
+              key={p.id}
+              className={cn(
+                'flex items-center gap-3 px-5 py-3',
+                selectedId === p.id && 'bg-bg-2',
+              )}
             >
-              <Trash2 size={14} />
-            </button>
-          </li>
-        ))}
+              <button
+                type="button"
+                onClick={() => onSelect(p.id)}
+                className="flex flex-1 items-center gap-3 text-left"
+              >
+                <ChevronRight
+                  size={14}
+                  className={cn(
+                    'flex-shrink-0 text-text-3 transition-transform',
+                    selectedId === p.id && 'rotate-90 text-text-1',
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-medium">{p.name}</div>
+                  <div className="mono mt-[2px] truncate text-[10.5px] text-text-3">
+                    ID {p.id}
+                    {p.address ? ` · ${p.address}` : ''}
+                  </div>
+                </div>
+                <span className="badge-glow accent">{p.common_areas_count} AREAS</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingId(p.id)}
+                aria-label={`Edit ${p.name}`}
+                className="rounded-full p-2 text-text-3 transition-colors hover:bg-bg-2 hover:text-text-1"
+                title="Edit name / address"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Delete "${p.name}" and all its common areas?`)) {
+                    del.mutate(p.id);
+                  }
+                }}
+                aria-label={`Delete ${p.name}`}
+                className="rounded-full p-2 text-text-3 transition-colors hover:bg-bg-2 hover:text-bad"
+                title="Delete property (cascade)"
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </div>
+  );
+}
+
+function PropertyEditRow({
+  property,
+  onCancel,
+  onSaved,
+}: {
+  property: PropertyOut;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(property.name);
+  const [address, setAddress] = useState(property.address ?? '');
+
+  const mduNames = useQuery({
+    queryKey: ['admin', 'mdu-olt-map', 'names'],
+    queryFn: () => adminApi.listMduOltMapNames(),
+    staleTime: 5 * 60_000,
+  });
+
+  const save = useMutation({
+    mutationFn: () =>
+      adminApi.updateProperty(property.id, {
+        name: name.trim() === property.name ? null : name.trim(),
+        address: address === (property.address ?? '') ? null : address || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
+      onSaved();
+    },
+  });
+
+  const trimmed = name.trim();
+  const dirty = trimmed !== property.name || address !== (property.address ?? '');
+  const matched =
+    trimmed && (mduNames.data ?? []).some(
+      (n) => n.toLowerCase() === trimmed.toLowerCase(),
+    );
+
+  const inputId = `pe-name-${property.id}`;
+  const addrId = `pe-addr-${property.id}`;
+  const listId = `pe-name-options-${property.id}`;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (dirty && trimmed) save.mutate();
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          EDIT PROPERTY · ID {property.id}
+        </span>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cancel edit"
+          className="rounded-full p-1 text-text-3 transition-colors hover:bg-bg-1 hover:text-text-1"
+        >
+          <X size={14} />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label htmlFor={inputId} className="flex flex-col gap-1">
+          <span
+            className="mono text-[10px] text-text-3"
+            style={{ letterSpacing: '0.12em' }}
+          >
+            NAME
+          </span>
+          <input
+            id={inputId}
+            type="text"
+            list={listId}
+            value={name}
+            required
+            autoComplete="off"
+            onChange={(e) => setName(e.target.value)}
+            className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+          />
+          <datalist id={listId}>
+            {(mduNames.data ?? []).map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+          <span
+            className="mono text-[10px] text-text-3"
+            style={{ letterSpacing: '0.08em' }}
+          >
+            {matched
+              ? '✓ MATCHES MDU MAP — OLT INFO WILL APPEAR ON DETAIL PAGE'
+              : `${mduNames.data?.length ?? 0} MDU NAMES AVAILABLE`}
+          </span>
+        </label>
+        <label htmlFor={addrId} className="flex flex-col gap-1">
+          <span
+            className="mono text-[10px] text-text-3"
+            style={{ letterSpacing: '0.12em' }}
+          >
+            ADDRESS
+          </span>
+          <input
+            id={addrId}
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+          />
+        </label>
+      </div>
+      {save.error && (
+        <div role="alert" className="mt-3 rounded-m border border-bad bg-bad-soft px-3 py-2 text-[12px] text-text-1">
+          {(save.error as Error).message}
+        </div>
+      )}
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={!dirty || !trimmed || save.isPending}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            background: 'linear-gradient(135deg, var(--gold), var(--accent))',
+            color: 'var(--text-on-accent)',
+          }}
+        >
+          {save.isPending && <Loader2 size={12} className="animate-spin" />}
+          {save.isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-transparent px-4 py-2 text-[12px] text-text-1 transition-colors hover:bg-bg-1"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
