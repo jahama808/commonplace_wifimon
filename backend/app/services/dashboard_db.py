@@ -57,7 +57,13 @@ async def build_dashboard_db(
 
     properties_q = (
         select(Property)
-        .options(selectinload(Property.common_areas))
+        .options(
+            selectinload(Property.common_areas),
+            # `_central_office` reads `p.olt_cllis[0]` synchronously; without
+            # eager loading SQLAlchemy emits a sync lazy-load mid-request and
+            # asyncpg raises MissingGreenlet.
+            selectinload(Property.olt_cllis),
+        )
         .order_by(Property.name)
     )
     properties = (await session.execute(properties_q)).scalars().all()
