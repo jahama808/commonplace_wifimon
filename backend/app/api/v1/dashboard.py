@@ -291,3 +291,104 @@ async def get_area(
     if int(detail.property_id) not in accessible:
         raise HTTPException(status_code=403, detail="no access to this area")
     return detail
+
+
+@router.post(
+    "/areas/{area_id}/check",
+    summary="Force-check this network now (bypasses 1-hour rate limit)",
+)
+async def post_area_check(
+    area_id: str = Path(...),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Hits eero `/network`, `/eeros`, `/devices` for this single area.
+    Updates cached state, writes a NetworkStatus row, refreshes EeroDevice
+    rows, writes ConnectedDeviceCount rows. Returns the post-call state."""
+    if settings.USE_MOCK_DATA:
+        # Nothing to refresh — mock data is synthetic. Pretend it worked so
+        # the FE doesn't have to special-case the dev environment.
+        return {"checked": 1, "is_online": True, "last_checked": None, "mock": True}
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from app.eero.client import eero_client
+    from app.models.common_area import CommonArea
+    from app.services.polling import force_check_area
+
+    ca = (
+        await session.execute(
+            select(CommonArea)
+            .options(selectinload(CommonArea.eero_devices))
+            .where(CommonArea.network_id == area_id)
+        )
+    ).scalar_one_or_none()
+    if ca is None:
+        raise HTTPException(status_code=404, detail="area not found")
+    accessible = await accessible_property_ids_for(session, user)
+    if ca.property_id not in accessible:
+        raise HTTPException(status_code=403, detail="no access to this area")
+    if not settings.EERO_API_TOKEN:
+        raise HTTPException(
+            status_code=503, detail="eero API token not configured on the server"
+        )
+
+    async with eero_client() as c:
+        is_online, checked_at = await force_check_area(session, ca, client=c)
+    return {
+        "checked": 1,
+        "is_online": is_online,
+        "last_checked": checked_at.isoformat() if checked_at else None,
+    }
+
+
+@router.post(
+    "/properties/{property_id}/check",
+    summary="Force-check every network in this property now",
+)
+async def post_property_check(
+    property_id: str = Path(...),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Iterates all common areas under the property and runs the full
+    refresh on each. Returns aggregate counts."""
+    if settings.USE_MOCK_DATA:
+        return {"checked": 0, "online": 0, "mock": True}
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from app.eero.client import eero_client
+    from app.models.common_area import CommonArea
+    from app.services.polling import force_check_area
+
+    if not property_id.isdigit():
+        raise HTTPException(status_code=404, detail="property not found")
+    pid = int(property_id)
+    accessible = await accessible_property_ids_for(session, user)
+    if pid not in accessible:
+        raise HTTPException(status_code=403, detail="no access to this property")
+    if not settings.EERO_API_TOKEN:
+        raise HTTPException(
+            status_code=503, detail="eero API token not configured on the server"
+        )
+
+    areas = (
+        await session.execute(
+            select(CommonArea)
+            .options(selectinload(CommonArea.eero_devices))
+            .where(CommonArea.property_id == pid)
+        )
+    ).scalars().all()
+    if not areas:
+        return {"checked": 0, "online": 0}
+
+    online_count = 0
+    async with eero_client() as c:
+        for area in areas:
+            is_online, _ = await force_check_area(session, area, client=c)
+            if is_online:
+                online_count += 1
+    return {"checked": len(areas), "online": online_count}

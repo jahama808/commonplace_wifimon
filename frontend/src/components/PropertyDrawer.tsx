@@ -1,10 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, X } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowUpRight, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { downloadPropertyReport, fetchProperty } from '@/lib/api';
+import { forceCheckProperty } from '@/lib/area-api';
 import type { DeviceRow, NetworkRow } from '@/types/dashboard';
 import { cn } from '@/lib/cn';
 import { DeviceCountsChart } from './DeviceCountsChart';
@@ -18,11 +19,20 @@ export function PropertyDrawer({ propertyId, onClose }: Props) {
   const open = propertyId != null;
   const [reportState, setReportState] = useState<'idle' | 'loading' | 'error'>('idle');
 
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['property', propertyId],
     queryFn: () => fetchProperty(propertyId as string),
     enabled: open,
     staleTime: 60_000,
+  });
+
+  const forceCheck = useMutation({
+    mutationFn: () => forceCheckProperty(propertyId as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['property', propertyId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 
   async function handleGenerateReport() {
@@ -154,9 +164,17 @@ export function PropertyDrawer({ propertyId, onClose }: Props) {
         <footer className="flex items-center gap-2 border-t border-line px-6 py-4">
           <button
             type="button"
-            className="flex-1 rounded-full border border-line-strong bg-transparent px-4 py-2 text-[12px] text-text-1 transition-colors hover:bg-bg-2"
+            disabled={forceCheck.isPending || !propertyId}
+            onClick={() => forceCheck.mutate()}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-line-strong bg-transparent px-4 py-2 text-[12px] text-text-1 transition-colors hover:bg-bg-2 disabled:cursor-not-allowed disabled:opacity-60"
+            title={forceCheck.isError ? (forceCheck.error as Error).message : 'Hits eero now — bypasses the 1h rate limit'}
           >
-            Force check now
+            {forceCheck.isPending && <Loader2 size={12} className="animate-spin" />}
+            {forceCheck.isPending
+              ? 'Checking…'
+              : forceCheck.isError
+                ? 'Check failed — retry'
+                : 'Force check now'}
           </button>
           <button
             type="button"

@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback } from 'react';
 import {
@@ -14,7 +14,7 @@ import {
   YAxis,
 } from 'recharts';
 import { ErrorBoundary } from './ErrorBoundary';
-import { fetchAreaDetail } from '@/lib/area-api';
+import { fetchAreaDetail, forceCheckArea } from '@/lib/area-api';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import type { AreaDetailResponse, EeroUnitRow, StatusHistoryPoint } from '@/types/api';
 
@@ -78,7 +78,7 @@ export function AreaDetailClient({ areaId }: Props) {
 
         {/* Identification */}
         <ErrorBoundary label="identification" onRetry={refetchArea}>
-          <IdentificationCard data={data} loading={isLoading} />
+          <IdentificationCard data={data} loading={isLoading} areaId={areaId} />
         </ErrorBoundary>
 
         {/* Eero Units + Connected Devices */}
@@ -114,10 +114,20 @@ export function AreaDetailClient({ areaId }: Props) {
 function IdentificationCard({
   data,
   loading,
+  areaId,
 }: {
   data: AreaDetailResponse | undefined;
   loading: boolean;
+  areaId: string;
 }) {
+  const queryClient = useQueryClient();
+  const forceCheck = useMutation({
+    mutationFn: () => forceCheckArea(areaId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['area', areaId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
   if (loading || !data) {
     return (
       <div className="card h-[180px] animate-pulse" aria-label="loading identification" />
@@ -166,11 +176,19 @@ function IdentificationCard({
           </a>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-line bg-transparent px-4 py-1.5 text-[12px] text-text-2 transition-colors hover:bg-bg-2"
-            title="Wired up in real mode only — bypasses the per-network 1h rate limit"
+            disabled={forceCheck.isPending}
+            onClick={() => forceCheck.mutate()}
+            className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-transparent px-4 py-1.5 text-[12px] text-text-1 transition-colors hover:bg-bg-2 disabled:cursor-not-allowed disabled:opacity-60"
+            title="Hits eero now — bypasses the per-network 1h rate limit"
           >
-            Force check now
+            {forceCheck.isPending && <Loader2 size={12} className="animate-spin" />}
+            {forceCheck.isPending ? 'Checking…' : 'Force check now'}
           </button>
+          {forceCheck.isError && (
+            <span className="text-[11px] text-bad" role="alert">
+              {(forceCheck.error as Error).message}
+            </span>
+          )}
         </div>
       </div>
     </div>

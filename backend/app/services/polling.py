@@ -375,3 +375,74 @@ async def update_firmware_versions(session: AsyncSession, *, client: EeroClient)
 
     await session.commit()
     return updated
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5) force_check_area — on-demand single-network refresh (SPEC §5.2)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def force_check_area(
+    session: AsyncSession,
+    area: CommonArea,
+    *,
+    client: EeroClient,
+    notifier: Notifier | None = None,
+) -> tuple[bool, datetime]:
+    """Run all three eero calls (network / eeros / devices) for one area now,
+    bypassing the per-network 1-hour rate limit. Used by the admin "Force
+    check now" button and by `wifimon check --force --area=…`.
+
+    Returns `(is_online, checked_at)` reflecting the post-call state.
+
+    The caller is expected to have eager-loaded `area.eero_devices` if it
+    wants device-row updates to skip an extra round-trip; we tolerate
+    either since the lazy load happens inside this same async session.
+    """
+    notifier = notifier or get_notifier()
+    now = _now()
+    area_id = area.id  # capture before any session.refresh that could expire
+    target = _endpoint_for(area)
+
+    # Eager-load the relationships the downstream code touches synchronously
+    # (notifier reads `area.property.name`; _apply_device_check dedupes on
+    # `area.eero_devices`). Without this, a transition fires lazy SQL inside
+    # the async context and asyncpg raises MissingGreenlet.
+    await session.refresh(area, attribute_names=["property", "eero_devices"])
+
+    # 1) /network → updates is_online + writes a NetworkStatus row
+    try:
+        net_resp = await client.get_network(target)
+        await _apply_network_check(session, area, net_resp, notifier=notifier, now=now)
+    except Exception as e:  # noqa: BLE001
+        log.exception("polling.force_network_failed", area_id=area_id, error=str(e))
+
+    # 2) /eeros → upserts EeroDevice rows + transitions
+    try:
+        eeros_resp = await client.get_eeros(target)
+        await _apply_device_check(session, area, eeros_resp, notifier=notifier, now=now)
+    except Exception as e:  # noqa: BLE001
+        log.exception("polling.force_eeros_failed", area_id=area_id, error=str(e))
+
+    # 3) /devices → writes ConnectedDeviceCount rows (one ssid="" total + per-SSID)
+    try:
+        dev_resp = await client.get_devices(target)
+        if dev_resp.ok:
+            devices = extract_device_list(dev_resp.payload)
+            total, per_ssid = bucket_connected_by_ssid(devices)
+            session.add(
+                ConnectedDeviceCount(
+                    common_area_id=area_id, count=total, ssid="", timestamp=now
+                )
+            )
+            for ssid, count in per_ssid.items():
+                session.add(
+                    ConnectedDeviceCount(
+                        common_area_id=area_id, count=count, ssid=ssid, timestamp=now
+                    )
+                )
+    except Exception as e:  # noqa: BLE001
+        log.exception("polling.force_devices_failed", area_id=area_id, error=str(e))
+
+    await session.commit()
+    return area.is_online, area.last_checked or now
