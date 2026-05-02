@@ -21,6 +21,7 @@ from app.schemas.dashboard import DashboardResponse, DeviceCountsResponse
 from app.schemas.property_detail import PropertyDetailResponse
 from app.schemas.report import ReportRequest
 from app.schemas.search import SearchResponse
+from app.services.area_detail_db import build_area_detail_db
 from app.services.auth import accessible_property_ids_for
 from app.services.dashboard_db import build_dashboard_db
 from app.services.dashboard_stream import db_event_stream, mock_event_stream
@@ -283,8 +284,10 @@ async def get_area(
             raise HTTPException(status_code=404, detail="area not found")
         return detail
 
-    # DB mode — TODO: real implementation. Until then, 501 so it's obvious
-    # this code path needs wiring before cutover.
-    raise HTTPException(
-        status_code=501, detail="area detail DB query not implemented yet"
-    )
+    detail = await build_area_detail_db(session, area_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="area not found")
+    accessible = await accessible_property_ids_for(session, user)
+    if int(detail.property_id) not in accessible:
+        raise HTTPException(status_code=403, detail="no access to this area")
+    return detail
