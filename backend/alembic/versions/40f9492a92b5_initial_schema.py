@@ -75,7 +75,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('property_id', sa.Integer(), nullable=False),
     sa.Column('island', sa.Enum('KAUAI', 'OAHU', 'MOLOKAI', 'LANAI', 'MAUI', 'HAWAII', name='island'), nullable=True),
-    sa.Column('location_type', sa.Enum('INDOOR', 'OUTDOOR', name='location_type'), server_default='indoor', nullable=False),
+    sa.Column('location_type', sa.Enum('INDOOR', 'OUTDOOR', name='location_type'), server_default='INDOOR', nullable=False),
     sa.Column('location_name', sa.String(length=120), nullable=False),
     sa.Column('network_id', sa.String(length=64), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),

@@ -13,13 +13,25 @@ In CI: the workflow provisions a Postgres service container.
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
 
-import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+# Force mock mode for the test process BEFORE any app code imports the
+# Settings singleton. Without this, a `.env` with `USE_MOCK_DATA=false`
+# (e.g. on the production host where tests share a working tree with
+# the live deployment) leaks into TestClient and breaks unit tests
+# that assume the synthetic dev user + mock data.
+os.environ.setdefault("USE_MOCK_DATA", "true")
 
-from app.models import Base
+from collections.abc import AsyncIterator  # noqa: E402
+
+import pytest  # noqa: E402
+import pytest_asyncio  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from app.models import Base  # noqa: E402
 
 
 def pytest_configure(config: pytest.Config) -> None:

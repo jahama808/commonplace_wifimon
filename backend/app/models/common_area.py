@@ -48,7 +48,10 @@ class CommonArea(Base, TimestampMixin):
         Enum(LocationType, name="location_type"),
         nullable=False,
         default=LocationType.INDOOR,
-        server_default=LocationType.INDOOR.value,
+        # SQLAlchemy stores Enum members by `.name` (uppercase) in the
+        # Postgres ENUM, so the server-side default must match — using
+        # `.value` ("indoor") would error at INSERT time.
+        server_default=LocationType.INDOOR.name,
     )
     location_name: Mapped[str] = mapped_column(String(120), nullable=False)
     network_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)

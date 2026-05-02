@@ -1,11 +1,22 @@
 """Typed configuration via environment variables."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve `.env` against the repo root rather than the current working
+# directory, so `cd backend && alembic upgrade head` (and any other ad-hoc
+# CLI invocation) reads the same .env the systemd units inject. Path:
+# this file is at backend/app/core/config.py, so the repo root is 3 up.
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_ENV_FILE = _REPO_ROOT / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore"
+    )
 
     # Required in real envs; defaults exist so the app boots in dev.
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/wifimon"
