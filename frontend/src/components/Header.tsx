@@ -2,6 +2,7 @@
 
 import { Moon, Search, Sun } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/lib/use-theme';
 
@@ -27,6 +28,7 @@ export function Header({
   const [now, setNow] = useState(hstNow ?? '');
   const [agoLabel, setAgoLabel] = useState('');
   const { theme, toggle: toggleTheme } = useTheme();
+  const pathname = usePathname() ?? '/';
 
   useEffect(() => {
     function recompute() {
@@ -91,21 +93,24 @@ export function Header({
 
       <nav className="hidden gap-7 text-[13px] xl:flex">
         {([
-          { label: 'Overview', href: '/', active: true },
-          { label: 'Properties', href: '#', active: false },
-          { label: 'Networks', href: '#', active: false },
-          { label: 'Alerts', href: '#', active: false },
-          { label: 'Admin', href: '/admin', active: false },
-        ] as { label: string; href: string; active: boolean }[]).map((t) => (
+          { label: 'Overview', href: '/' },
+          { label: 'Properties', href: '/properties' },
+          { label: 'Admin', href: '/admin' },
+        ] as { label: string; href: string }[]).map((t) => {
+          // Active = exact path match for '/', otherwise prefix match so
+          // /properties/13 also lights up the Properties tab.
+          const active =
+            t.href === '/' ? pathname === '/' : pathname === t.href || pathname.startsWith(`${t.href}/`);
+          return (
           <Link
             key={t.label}
             href={t.href}
             className={`relative cursor-pointer py-[6px] no-underline ${
-              t.active ? 'font-semibold text-text-0' : 'font-medium text-text-2'
+              active ? 'font-semibold text-text-0' : 'font-medium text-text-2'
             }`}
           >
             {t.label}
-            {t.active && (
+            {active && (
               <span
                 className="absolute inset-x-0 -bottom-[22px] h-[2px]"
                 style={{
@@ -115,7 +120,8 @@ export function Header({
               />
             )}
           </Link>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="flex items-center gap-2 sm:gap-[14px]">
