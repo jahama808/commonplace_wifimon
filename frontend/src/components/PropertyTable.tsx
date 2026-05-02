@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import type { PropertyPin } from '@/types/dashboard';
 import { Sparkline } from './Sparkline';
 import { cn } from '@/lib/cn';
+import { ISLAND_LABEL } from '@/lib/islands';
 
 const STATUS_DOT: Record<string, 'ok' | 'warn' | 'bad'> = {
   online: 'ok',
@@ -81,9 +82,11 @@ export function PropertyTable({ properties, selected, onSelect }: Props) {
                 style={{ gridTemplateColumns: GRID_COLS }}
               >
                 <span className={`pulse-dot ${STATUS_DOT[p.status]}`} />
-                <div>
+                <div className="min-w-0">
                   <div className="text-[14px] font-medium">{p.name}</div>
-                  <div className="mono mt-[2px] text-[10.5px] text-text-3">{p.central_office}</div>
+                  <div className="mt-[2px] truncate text-[11px] text-text-3">
+                    {p.address || '—'}
+                  </div>
                 </div>
                 <span className="rounded-s border border-line bg-bg-2 px-2 py-[2px] text-[11.5px] text-text-2 justify-self-start">
                   {islandLabel(p.island)}
@@ -103,9 +106,11 @@ export function PropertyTable({ properties, selected, onSelect }: Props) {
                     <span className="truncate text-[14px] font-medium">{p.name}</span>
                     {statusBadge}
                   </div>
+                  <div className="mt-[2px] truncate text-[11px] text-text-3">
+                    {p.address || '—'}
+                  </div>
                   <div className="mono mt-[2px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-text-3">
                     <span>{islandLabel(p.island)}</span>
-                    <span>{p.central_office}</span>
                     <span>{p.networks} nets</span>
                     <span className="font-semibold text-text-2">{p.devices} devices</span>
                   </div>
@@ -129,12 +134,5 @@ export function PropertyTable({ properties, selected, onSelect }: Props) {
 }
 
 function islandLabel(value: string) {
-  return ({
-    oahu: 'Oahu',
-    maui: 'Maui',
-    'big-island': 'Big Island',
-    kauai: 'Kauai',
-    molokai: 'Molokai',
-    lanai: 'Lanai',
-  } as Record<string, string>)[value] ?? value;
+  return ISLAND_LABEL[value] ?? value;
 }

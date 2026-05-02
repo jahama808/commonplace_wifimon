@@ -69,7 +69,9 @@ async def build_property_detail_db(
         [ca.is_online for ca in p.common_areas],
         [ca.is_chronic for ca in p.common_areas],
     )
-    primary_island = p.common_areas[0].island if p.common_areas else None
+    # Prefer the property's own island; fall back to the most-common
+    # common-area island for un-migrated rows.
+    primary_island = p.island or (p.common_areas[0].island if p.common_areas else None)
 
     # Aggregate eero model + firmware across every unit on the property —
     # feeds the two side panels on the property detail page (SPEC §5.5).

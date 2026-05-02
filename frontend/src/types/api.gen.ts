@@ -513,6 +513,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/island-from-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Island From Address
+         * @description Best-effort island detection for the Add/Edit Property form.
+         *     Returns `{"island": "oahu" | ... | None}`. Pure function — no DB.
+         */
+        get: operations["island_from_address_api_v1_admin_island_from_address_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/mdu-olt-map": {
         parameters: {
             query?: never;
@@ -1135,6 +1156,8 @@ export interface components {
             name: string;
             /** Address */
             address?: string | null;
+            /** Island */
+            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
         };
         /** PropertyDetailResponse */
         PropertyDetailResponse: {
@@ -1187,6 +1210,8 @@ export interface components {
             name: string;
             /** Address */
             address: string | null;
+            /** Island */
+            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
             /**
              * Created At
              * Format: date-time
@@ -1216,6 +1241,8 @@ export interface components {
             island: "oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai";
             /** Central Office */
             central_office: string;
+            /** Address */
+            address?: string | null;
             /** Networks */
             networks: number;
             /** Devices */
@@ -1249,6 +1276,8 @@ export interface components {
             name?: string | null;
             /** Address */
             address?: string | null;
+            /** Island */
+            island?: ("oahu" | "maui" | "big-island" | "kauai" | "molokai" | "lanai" | "hawaii") | null;
         };
         /**
          * ReportRequest
@@ -2311,6 +2340,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    island_from_address_api_v1_admin_island_from_address_get: {
+        parameters: {
+            query?: {
+                address?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

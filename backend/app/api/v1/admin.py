@@ -68,6 +68,7 @@ def _property_out(p: Property, *, common_areas_count: int) -> PropertyOut:
         id=p.id,
         name=p.name,
         address=p.address,
+        island=p.island,
         created_at=p.created_at,
         updated_at=p.updated_at,
         common_areas_count=common_areas_count,
@@ -405,6 +406,19 @@ def _mdu_out(row: MduOltMap) -> MduOltMapOut:
         equip_name_1=row.equip_name_1,
         equip_model=row.equip_model,
     )
+
+
+@router.get("/island-from-address")
+async def island_from_address(
+    address: str = "",
+    _staff: User = Depends(require_staff),
+) -> dict:
+    """Best-effort island detection for the Add/Edit Property form.
+    Returns `{"island": "oahu" | ... | None}`. Pure function — no DB."""
+    from app.services.island_detect import detect_island
+
+    found = detect_island(address)
+    return {"island": found.value if found else None}
 
 
 @router.get("/mdu-olt-map", response_model=list[MduOltMapOut])

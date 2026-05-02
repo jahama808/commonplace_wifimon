@@ -21,12 +21,7 @@ import { MaintenanceCard } from './MaintenanceCard';
 import { PropertyDrawer } from './PropertyDrawer';
 import { useUrlState } from '@/lib/use-url-state';
 
-const ISLAND_OPTIONS = [
-  { value: 'oahu', label: 'Oahu' },
-  { value: 'maui', label: 'Maui' },
-  { value: 'big-island', label: 'Big Island' },
-  { value: 'kauai', label: 'Kauai' },
-];
+import { ISLAND_OPTIONS } from '@/lib/islands';
 
 type Range = '24h' | '7d' | '30d';
 const RANGE_TO_DAYS: Record<Range, number> = { '24h': 1, '7d': 7, '30d': 30 };

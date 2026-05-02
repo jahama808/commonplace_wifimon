@@ -17,6 +17,7 @@ from app.schemas.admin import (
     PropertyCreate,
     PropertyUpdate,
 )
+from app.services.island_detect import detect_island
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Property CRUD
@@ -24,7 +25,11 @@ from app.schemas.admin import (
 
 
 async def create_property(session: AsyncSession, payload: PropertyCreate) -> Property:
-    p = Property(name=payload.name, address=payload.address)
+    # If the operator didn't explicitly set the island, try to derive it
+    # from the address. detect_island returns None when ambiguous, which
+    # is fine — it stays nullable until someone fixes it.
+    island = payload.island or detect_island(payload.address)
+    p = Property(name=payload.name, address=payload.address, island=island)
     session.add(p)
     await session.commit()
     await session.refresh(p)
@@ -38,6 +43,8 @@ async def update_property(
         prop.name = payload.name
     if payload.address is not None:
         prop.address = payload.address
+    if payload.island is not None:
+        prop.island = payload.island
     await session.commit()
     await session.refresh(prop)
     return prop

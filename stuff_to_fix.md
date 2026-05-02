@@ -3,8 +3,9 @@
 All issues from the original list are addressed. Notes below describe
 what was wrong and what changed.
 
-One follow-up surfaced during investigation (#6 below) — open, no
-code change yet.
+Items #1–#5 were the original list; #6 is an open follow-up surfaced
+during the #1 investigation (no code change yet); #7–#8 were added
+afterwards and are both fixed.
 
 ---
 
@@ -111,3 +112,54 @@ code change yet.
    "polling.network_check_failed" — the structured logger already
    captures the area_id and error message. Fix once the pattern is
    clear.
+
+7. **Island moves to the Property; auto-detect from address; remove from Common Area form.**
+   _Status: fixed._
+
+   - **Schema** — added `properties.island`. Backfilled from the
+     existing per-area islands (most-common-per-property, deterministic
+     tie-break). All migrated properties picked up the right island;
+     Ka Eo Kai stayed null and can be set on first edit.
+
+   - **Auto-detect from address** — new heuristic looks for explicit
+     island names + well-known town keywords (Honolulu / Waikiki →
+     Oahu, Lahaina / Wailuku → Maui, Hilo / Kona → Hawaii, Lihue /
+     Princeville → Kauai, Kaunakakai → Molokai, Lanai City → Lanai).
+     Ambiguous addresses ("Kailua, HI" — exists on both Oahu and
+     Hawaii) intentionally return null so the operator picks.
+
+   - **Add Property form** — gains an Island dropdown. Auto-populates
+     as the operator types the address (debounced). Once they
+     manually pick, auto-detect stops overriding. Hint line shows
+     MANUALLY SET / AUTO-DETECTED / WILL AUTO-DETECT.
+
+   - **Edit Property form** — same dropdown, pre-populated from the
+     existing value. Auto-detect only runs if the property didn't
+     already have an island set, so a typo in the address doesn't
+     blow away a manual choice.
+
+   - **Common Area form** — Island input removed. Property is now the
+     single source of truth.
+
+   - **Display** — "Big Island" renamed to "Hawaii" everywhere
+     user-facing. Internal slug (`big-island`) stays for URL/map-key
+     stability.
+
+   - **Map** — Molokai and Lanai now show on the dashboard map (they
+     were missing entirely before), so pins for properties on either
+     land in the right place.
+
+8. **Property list on the dashboard: show address, not Central Office.**
+   _Status: fixed._
+
+   The little grey line under each property name was showing the OLT
+   CLLI (e.g. `LHNAHICO` for Aston Kaanapali Shores). Replaced with
+   the property's address; falls back to `—` when no address is set.
+
+   - PropertyPin gained an `address` field on the wire.
+   - Dashboard property table + standalone /properties index page
+     both updated (desktop and mobile layouts).
+   - Search box on the /properties page now filters on
+     name/address (was name/central-office).
+   - Central Office stays available on the property detail-page
+     header (where it's actually useful), just not in the list.

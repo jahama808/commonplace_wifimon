@@ -193,6 +193,7 @@ def build_dashboard(
                 name=p["name"],
                 island=p["island"],
                 central_office=p["co"],
+                address=p.get("address"),
                 networks=p["networks"],
                 devices=p["devices"],
                 status=p["status"],

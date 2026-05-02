@@ -21,17 +21,20 @@ LocationType = Literal["indoor", "outdoor"]
 class PropertyCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     address: str | None = None
+    island: Island | None = None
 
 
 class PropertyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     address: str | None = None
+    island: Island | None = None
 
 
 class PropertyOut(BaseModel):
     id: int
     name: str
     address: str | None
+    island: Island | None = None
     created_at: datetime
     updated_at: datetime
     common_areas_count: int = 0

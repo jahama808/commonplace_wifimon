@@ -29,7 +29,8 @@ class PropertyPin(BaseModel):
     id: str
     name: str
     island: Island
-    central_office: str
+    central_office: str  # retained for the detail-page header; the list shows address
+    address: str | None = None
     networks: int
     devices: int
     status: Status

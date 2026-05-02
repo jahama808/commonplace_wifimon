@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, String, Table, Text
+from sqlalchemy import Column, Enum, ForeignKey, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models._mixins import TimestampMixin
+from app.models.common_area import Island
 
 if TYPE_CHECKING:
     from app.models.common_area import CommonArea
@@ -43,6 +44,9 @@ class Property(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    island: Mapped[Island | None] = mapped_column(
+        Enum(Island, name="island", create_type=False), nullable=True
+    )
 
     common_areas: Mapped[list[CommonArea]] = relationship(
         back_populates="property", cascade="all, delete-orphan"

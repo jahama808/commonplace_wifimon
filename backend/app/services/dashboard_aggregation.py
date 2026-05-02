@@ -26,7 +26,9 @@ ISLAND_SLUG: dict[Island, str] = {
 ISLAND_LABEL: dict[str, str] = {
     "oahu": "Oahu",
     "maui": "Maui",
-    "big-island": "Big Island",
+    # Slug stays "big-island" (legacy URL state + map-region key); user-
+    # facing display name is "Hawaii" everywhere.
+    "big-island": "Hawaii",
     "kauai": "Kauai",
     "molokai": "Molokai",
     "lanai": "Lanai",
@@ -45,9 +47,9 @@ ISLAND_LABEL: dict[str, str] = {
 ISLAND_REGIONS: dict[str, tuple[float, float, float]] = {
     "kauai":      (0.12, 0.32, 0.10),
     "oahu":       (0.32, 0.40, 0.11),
-    "molokai":    (0.46, 0.32, 0.05),
-    "lanai":      (0.50, 0.36, 0.04),
-    "maui":       (0.58, 0.32, 0.13),
+    "molokai":    (0.46, 0.30, 0.05),
+    "lanai":      (0.50, 0.42, 0.04),
+    "maui":       (0.62, 0.32, 0.12),
     "big-island": (0.82, 0.62, 0.16),
 }
 

@@ -1376,6 +1376,52 @@
         }
       }
     },
+    "/api/v1/admin/island-from-address": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Island From Address",
+        "description": "Best-effort island detection for the Add/Edit Property form.\nReturns `{\"island\": \"oahu\" | ... | None}`. Pure function \u2014 no DB.",
+        "operationId": "island_from_address_api_v1_admin_island_from_address_get",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Island From Address Api V1 Admin Island From Address Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/mdu-olt-map": {
       "get": {
         "tags": [
@@ -3156,6 +3202,26 @@
               }
             ],
             "title": "Address"
+          },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
           }
         },
         "type": "object",
@@ -3312,6 +3378,26 @@
             ],
             "title": "Address"
           },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -3363,6 +3449,17 @@
           "central_office": {
             "type": "string",
             "title": "Central Office"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
           },
           "networks": {
             "type": "integer",
@@ -3443,6 +3540,26 @@
               }
             ],
             "title": "Address"
+          },
+          "island": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oahu",
+                  "maui",
+                  "big-island",
+                  "kauai",
+                  "molokai",
+                  "lanai",
+                  "hawaii"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Island"
           }
         },
         "type": "object",

@@ -3,9 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import { cn } from '@/lib/cn';
+import { ISLAND_OPTIONS, enumToSlug, slugToEnum } from '@/lib/islands';
 import type {
   AreaPreviewResponse,
   ClliOut,
@@ -242,6 +243,9 @@ function PropertyEditRow({
   const queryClient = useQueryClient();
   const [name, setName] = useState(property.name);
   const [address, setAddress] = useState(property.address ?? '');
+  const initialIslandSlug = enumToSlug(property.island ?? null) ?? '';
+  const [islandSlug, setIslandSlug] = useState(initialIslandSlug);
+  const [islandTouched, setIslandTouched] = useState(false);
 
   const mduNames = useQuery({
     queryKey: ['admin', 'mdu-olt-map', 'names'],
@@ -249,11 +253,30 @@ function PropertyEditRow({
     staleTime: 5 * 60_000,
   });
 
+  // Auto-detect island from address — only when the operator hasn't
+  // manually set the island AND there's no existing value to preserve.
+  useEffect(() => {
+    if (islandTouched || initialIslandSlug || !address.trim()) return;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await adminApi.islandFromAddress(address);
+        const slug = enumToSlug(res.island);
+        if (slug && !islandTouched) setIslandSlug(slug);
+      } catch {
+        /* silent */
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [address, islandTouched, initialIslandSlug]);
+
   const save = useMutation({
     mutationFn: () =>
       adminApi.updateProperty(property.id, {
         name: name.trim() === property.name ? null : name.trim(),
         address: address === (property.address ?? '') ? null : address || null,
+        island: (islandSlug === initialIslandSlug
+          ? null
+          : (slugToEnum(islandSlug) || null)) as never,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
@@ -262,7 +285,10 @@ function PropertyEditRow({
   });
 
   const trimmed = name.trim();
-  const dirty = trimmed !== property.name || address !== (property.address ?? '');
+  const dirty =
+    trimmed !== property.name ||
+    address !== (property.address ?? '') ||
+    islandSlug !== initialIslandSlug;
   const matched =
     trimmed && (mduNames.data ?? []).some(
       (n) => n.toLowerCase() === trimmed.toLowerCase(),
@@ -342,6 +368,30 @@ function PropertyEditRow({
             className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
           />
         </label>
+        <label htmlFor={`pe-island-${property.id}`} className="flex flex-col gap-1 sm:col-span-2">
+          <span
+            className="mono text-[10px] text-text-3"
+            style={{ letterSpacing: '0.12em' }}
+          >
+            ISLAND
+          </span>
+          <select
+            id={`pe-island-${property.id}`}
+            value={islandSlug}
+            onChange={(e) => {
+              setIslandSlug(e.target.value);
+              setIslandTouched(true);
+            }}
+            className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+          >
+            <option value="">— pick an island —</option>
+            {ISLAND_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {save.error && (
         <div role="alert" className="mt-3 rounded-m border border-bad bg-bad-soft px-3 py-2 text-[12px] text-text-1">
@@ -377,6 +427,8 @@ function NewPropertyCard() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [islandSlug, setIslandSlug] = useState('');
+  const [islandTouched, setIslandTouched] = useState(false);
   // Pull MDU names so the input doubles as an autocomplete; the user can
   // pick a known MDU or type a free-form name.
   const mduNames = useQuery({
@@ -384,12 +436,33 @@ function NewPropertyCard() {
     queryFn: () => adminApi.listMduOltMapNames(),
     staleTime: 5 * 60_000,
   });
+  // Auto-detect island from address. Skip the round-trip until the user
+  // pauses typing (debounce) and stop overriding once they manually pick.
+  useEffect(() => {
+    if (islandTouched || !address.trim()) return;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await adminApi.islandFromAddress(address);
+        const slug = enumToSlug(res.island);
+        if (slug && !islandTouched) setIslandSlug(slug);
+      } catch {
+        /* silent — keep current selection */
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [address, islandTouched]);
   const create = useMutation({
     mutationFn: () =>
-      adminApi.createProperty({ name, address: address || null }),
+      adminApi.createProperty({
+        name,
+        address: address || null,
+        island: (slugToEnum(islandSlug) || null) as never,
+      }),
     onSuccess: () => {
       setName('');
       setAddress('');
+      setIslandSlug('');
+      setIslandTouched(false);
       queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
     },
   });
@@ -441,6 +514,37 @@ function NewPropertyCard() {
         </span>
       </label>
       <FormField id="np-addr" label="Address" value={address} onChange={setAddress} />
+      <label htmlFor="np-island" className="mt-3 flex flex-col gap-1">
+        <span
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          ISLAND
+        </span>
+        <select
+          id="np-island"
+          value={islandSlug}
+          onChange={(e) => {
+            setIslandSlug(e.target.value);
+            setIslandTouched(true);
+          }}
+          className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+        >
+          <option value="">— pick an island —</option>
+          {ISLAND_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className="mono text-[10px] text-text-3" style={{ letterSpacing: '0.08em' }}>
+          {islandTouched
+            ? 'MANUALLY SET'
+            : islandSlug
+              ? '✓ AUTO-DETECTED FROM ADDRESS'
+              : 'WILL AUTO-DETECT FROM ADDRESS WHEN POSSIBLE'}
+        </span>
+      </label>
       {create.error && (
         <div role="alert" className="mt-3 rounded-m border border-bad bg-bad-soft px-3 py-2 text-[12px] text-text-1">
           {(create.error as Error).message}
@@ -547,7 +651,6 @@ function AreaForm({ propertyId }: { propertyId: number }) {
   const queryClient = useQueryClient();
   const [networkId, setNetworkId] = useState('');
   const [locationName, setLocationName] = useState('');
-  const [island, setIsland] = useState<string>('');
   const [locationType, setLocationType] = useState<'indoor' | 'outdoor'>('indoor');
   const [preview, setPreview] = useState<AreaPreviewResponse | null>(null);
 
@@ -561,9 +664,8 @@ function AreaForm({ propertyId }: { propertyId: number }) {
       adminApi.createArea(propertyId, {
         network_id: networkId,
         location_name: locationName,
-        // OpenAPI-generated `island` includes more values than the canonical
-        // wire form; the BE accepts the kebab string and coerces.
-        island: (island || null) as never,
+        // Island lives on the property now (Add/Edit Property has the
+        // dropdown); not collected here anymore.
         location_type: locationType,
       }),
     onSuccess: () => {
@@ -591,13 +693,6 @@ function AreaForm({ propertyId }: { propertyId: number }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField id="ca-nid" label="Network ID" value={networkId} onChange={setNetworkId} required mono />
         <FormField id="ca-loc" label="Location Name" value={locationName} onChange={setLocationName} required />
-        <FormField
-          id="ca-island"
-          label="Island"
-          value={island}
-          onChange={setIsland}
-          placeholder="oahu | maui | big-island | kauai | molokai | lanai"
-        />
         <div>
           <label
             htmlFor="ca-type"

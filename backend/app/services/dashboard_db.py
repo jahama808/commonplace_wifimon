@@ -83,6 +83,7 @@ async def build_dashboard_db(
                 name=p.name,
                 island=slug,  # type: ignore[arg-type]
                 central_office=_central_office(p),
+                address=p.address,
                 networks=len(p.common_areas),
                 devices=await _latest_total_devices(session, p),
                 status=status,
@@ -169,15 +170,21 @@ def _area_effectively_online(ca: CommonArea) -> bool:
 
 
 def _property_status(p: Property) -> tuple[str, str, int]:
+    # Island comes from the property itself (operator-set or address-derived).
+    # Fall back to the most-common common-area island only for un-migrated
+    # legacy rows where Property.island is still NULL.
+    if p.island is not None:
+        slug = island_slug(p.island)
+    elif p.common_areas:
+        counts: dict[Island | None, int] = {}
+        for ca in p.common_areas:
+            counts[ca.island] = counts.get(ca.island, 0) + 1
+        slug = island_slug(max(counts, key=counts.get))
+    else:
+        slug = "oahu"
+
     if not p.common_areas:
-        return "oahu", "online", 0
-    # Pick island = the most-common island across this property's areas, with
-    # a fallback to the first.
-    counts: dict[Island | None, int] = {}
-    for ca in p.common_areas:
-        counts[ca.island] = counts.get(ca.island, 0) + 1
-    primary_island = max(counts, key=counts.get)
-    slug = island_slug(primary_island)
+        return slug, "online", 0
     status, offline = status_rollup(
         [_area_effectively_online(ca) for ca in p.common_areas],
         [ca.is_chronic for ca in p.common_areas],

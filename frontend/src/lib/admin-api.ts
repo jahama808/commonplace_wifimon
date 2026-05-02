@@ -100,6 +100,13 @@ export const adminApi = {
   deleteMaintenance: (id: number) =>
     call<void>('DELETE', `/admin/maintenance/${id}`),
 
+  // Address → island heuristic (drives auto-detect on Add/Edit Property)
+  islandFromAddress: (address: string) =>
+    call<{ island: string | null }>(
+      'GET',
+      `/admin/island-from-address?address=${encodeURIComponent(address)}`,
+    ),
+
   // MDU↔OLT map
   listMduOltMap: () => call<MduOltMapOut[]>('GET', '/admin/mdu-olt-map'),
   listMduOltMapNames: () =>

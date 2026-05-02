@@ -21,8 +21,12 @@ interface Props {
 const ISLAND_CIRCLES: Record<string, { x: number; y: number; r: number; label: string }> = {
   kauai:        { x: 0.12, y: 0.32, r: 0.10, label: 'KAUAI' },
   oahu:         { x: 0.32, y: 0.40, r: 0.11, label: 'OAHU' },
-  maui:         { x: 0.58, y: 0.32, r: 0.13, label: 'MAUI' },
-  'big-island': { x: 0.82, y: 0.62, r: 0.16, label: 'BIG ISLAND' },
+  // Molokai sits NE of Oahu, north of Lanai+Maui — small disc.
+  molokai:      { x: 0.46, y: 0.30, r: 0.05, label: 'MOLOKAI' },
+  // Lanai is south of Molokai, west of Maui.
+  lanai:        { x: 0.50, y: 0.42, r: 0.04, label: 'LANAI' },
+  maui:         { x: 0.62, y: 0.32, r: 0.12, label: 'MAUI' },
+  'big-island': { x: 0.82, y: 0.62, r: 0.16, label: 'HAWAII' },
 };
 
 const STATUS_COLOR: Record<string, string> = {

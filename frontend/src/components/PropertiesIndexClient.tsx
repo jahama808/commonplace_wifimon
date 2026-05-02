@@ -21,21 +21,7 @@ const SPARK_COLOR: Record<string, string> = {
   offline: 'oklch(0.68 0.21 25)',
 };
 
-const ISLAND_OPTIONS = [
-  { value: 'oahu', label: 'Oahu' },
-  { value: 'maui', label: 'Maui' },
-  { value: 'big-island', label: 'Big Island' },
-  { value: 'kauai', label: 'Kauai' },
-];
-
-const ISLAND_LABEL: Record<string, string> = {
-  oahu: 'Oahu',
-  maui: 'Maui',
-  'big-island': 'Big Island',
-  kauai: 'Kauai',
-  molokai: 'Molokai',
-  lanai: 'Lanai',
-};
+import { ISLAND_LABEL, ISLAND_OPTIONS } from '@/lib/islands';
 
 const GRID_COLS = '24px 1.8fr 0.8fr 0.6fr 0.7fr 1.2fr 0.9fr 24px';
 
@@ -57,7 +43,7 @@ export function PropertiesIndexClient() {
     return byIsland.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        p.central_office.toLowerCase().includes(q),
+        (p.address?.toLowerCase().includes(q) ?? false),
     );
   }, [data?.properties, island, query]);
 
@@ -92,7 +78,7 @@ export function PropertiesIndexClient() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by name or CO…"
+              placeholder="Filter by name or address…"
               className="rounded-full border border-line bg-bg-1 px-4 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
             />
           </div>
@@ -164,10 +150,10 @@ export function PropertiesIndexClient() {
                     style={{ gridTemplateColumns: GRID_COLS }}
                   >
                     <span className={`pulse-dot ${STATUS_DOT[p.status]}`} />
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[14px] font-medium text-text-0">{p.name}</div>
-                      <div className="mono mt-[2px] text-[10.5px] text-text-3">
-                        {p.central_office}
+                      <div className="mt-[2px] truncate text-[11px] text-text-3">
+                        {p.address || '—'}
                       </div>
                     </div>
                     <span className="rounded-s border border-line bg-bg-2 px-2 py-[2px] text-[11.5px] text-text-2 justify-self-start">
@@ -189,9 +175,11 @@ export function PropertiesIndexClient() {
                         </span>
                         {statusBadge}
                       </div>
+                      <div className="mt-[2px] truncate text-[11px] text-text-3">
+                        {p.address || '—'}
+                      </div>
                       <div className="mono mt-[2px] flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-text-3">
                         <span>{ISLAND_LABEL[p.island] ?? p.island}</span>
-                        <span>{p.central_office}</span>
                         <span>{p.networks} nets</span>
                         <span className="font-semibold text-text-2">{p.devices} devices</span>
                       </div>
