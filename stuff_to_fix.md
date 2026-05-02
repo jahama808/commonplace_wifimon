@@ -3,6 +3,9 @@
 All issues from the original list are addressed. Notes below describe
 what was wrong and what changed.
 
+One follow-up surfaced during investigation (#6 below) — open, no
+code change yet.
+
 ---
 
 1. **Sparkline graph on the Properties list — does it actually update?**
@@ -79,3 +82,32 @@ what was wrong and what changed.
    - The Live Alerts card header now shows
      `N UNREAD · LAST 24H · M READ` so you can see how much you've
      dismissed.
+
+6. **Polling worker is falling behind on some properties.**
+   _Status: open — surfaced during #1 investigation, not yet fixed._
+
+   Different properties are getting polled at very different
+   cadences. Examples from a single snapshot:
+   - Pacific 19 areas: last device-count is ~2 minutes old
+   - Pakalana area: last device-count is ~2 hours old
+   - Park Lane areas: last device-count is **17 hours** old
+
+   The worker is supposed to hit every common area every 15 minutes
+   (every 30 minutes overnight). When polls are this stale, the
+   dashboard "current device count" on Park Lane is yesterday's
+   number, the sparkline goes flat for the recent hours, and stale
+   `is_online` state can mislead the rollup.
+
+   Likely culprits to check (none investigated yet):
+   - Per-property eero API errors silently failing the loop for that
+     area while letting others through
+   - The worker pinging the eero rate limit and only getting through
+     part of the area list per cycle
+   - An expired or per-area `api_endpoint` override on Park Lane's
+     networks specifically
+
+   Action item: tail `journalctl -u wifimon-worker` during a poll
+   cycle to see which areas log "polling.device_counts_failed" /
+   "polling.network_check_failed" — the structured logger already
+   captures the area_id and error message. Fix once the pattern is
+   clear.
