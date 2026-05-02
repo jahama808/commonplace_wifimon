@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { fetchDashboard } from '@/lib/api';
+import { fetchCurrentUser, hawaiianGreeting } from '@/lib/auth-api';
 import { useDashboardStream } from '@/lib/use-dashboard-stream';
 import { SearchPalette } from './SearchPalette';
 import { Header } from './Header';
@@ -117,6 +118,13 @@ export function DashboardClient() {
     enabled: !streamConnected,
   });
 
+  const me = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: fetchCurrentUser,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
   const subhead = subheadCopy(data?.outage_count ?? 0);
   const today = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Pacific/Honolulu',
@@ -125,6 +133,7 @@ export function DashboardClient() {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date());
+  const greeting = hawaiianGreeting();
 
   return (
     <div className="min-h-screen bg-bg-0 text-text-0">
@@ -148,7 +157,8 @@ export function DashboardClient() {
               WIFI · COMMON AREAS
             </div>
             <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.02em] sm:text-[36px]">
-              Good morning, John
+              {greeting}
+              {me.data?.username ? `, ${me.data.username}` : ''}
             </h1>
             <p className="mt-1 text-[14px] text-text-2">
               {today} · {subhead}
