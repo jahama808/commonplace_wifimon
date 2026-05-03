@@ -1,11 +1,11 @@
 # Stuff to fix
 
-All issues from the original list are addressed. Notes below describe
-what was wrong and what changed.
+All issues are addressed. Notes below describe what was wrong and
+what changed.
 
-Items #1–#5 were the original list; #6 is an open follow-up surfaced
-during the #1 investigation (no code change yet); #7–#8 were added
-afterwards and are both fixed.
+Items #1–#5 were the original list; #6 was a follow-up surfaced
+during the #1 investigation; #7–#8 were added afterwards. Everything
+is fixed.
 
 ---
 
@@ -84,34 +84,27 @@ afterwards and are both fixed.
      `N UNREAD · LAST 24H · M READ` so you can see how much you've
      dismissed.
 
-6. **Polling worker is falling behind on some properties.**
-   _Status: open — surfaced during #1 investigation, not yet fixed._
+6. **Polling worker was falling behind on most properties.**
+   _Status: fixed._
 
-   Different properties are getting polled at very different
-   cadences. Examples from a single snapshot:
-   - Pacific 19 areas: last device-count is ~2 minutes old
-   - Pakalana area: last device-count is ~2 hours old
-   - Park Lane areas: last device-count is **17 hours** old
+   The worker process was alive but **every scheduled poll tick was
+   crashing immediately** with `RuntimeError: no running event loop`.
+   The recent device-counts I'd seen on Pacific 19 / Pakalana / etc.
+   were from the manual "Force check now" button (a different code
+   path), not from the scheduled worker — it just looked like the
+   worker was running unevenly. In reality it was running 0% of the
+   time.
 
-   The worker is supposed to hit every common area every 15 minutes
-   (every 30 minutes overnight). When polls are this stale, the
-   dashboard "current device count" on Park Lane is yesterday's
-   number, the sparkline goes flat for the recent hours, and stale
-   `is_online` state can mislead the rollup.
+   Cause: each scheduled job was registered as a sync lambda that
+   called `asyncio.create_task(...)`. APScheduler executes sync
+   callables on a worker thread that has no event loop, so
+   `create_task` blew up before the job body could even start.
 
-   Likely culprits to check (none investigated yet):
-   - Per-property eero API errors silently failing the loop for that
-     area while letting others through
-   - The worker pinging the eero rate limit and only getting through
-     part of the area list per cycle
-   - An expired or per-area `api_endpoint` override on Park Lane's
-     networks specifically
-
-   Action item: tail `journalctl -u wifimon-worker` during a poll
-   cycle to see which areas log "polling.device_counts_failed" /
-   "polling.network_check_failed" — the structured logger already
-   captures the area_id and error message. Fix once the pattern is
-   clear.
+   Fix: pass the async function directly to `add_job(...)` —
+   `AsyncIOScheduler` schedules coroutines natively on its own loop.
+   Single-line change in `app/worker.py`. After a worker restart the
+   next 15-min cron tick should successfully poll all 12 properties
+   for the first time since cutover.
 
 7. **Island moves to the Property; auto-detect from address; remove from Common Area form.**
    _Status: fixed._

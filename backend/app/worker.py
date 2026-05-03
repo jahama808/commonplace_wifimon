@@ -122,9 +122,14 @@ def _build_scheduler() -> AsyncIOScheduler:
     )
 
     for job_id, runner, trigger in schedule:
-        # bind via default arg to avoid late-binding closure pitfalls
+        # AsyncIOScheduler schedules coroutine functions natively on its
+        # own event loop. The previous form wrapped this in a sync lambda
+        # + asyncio.create_task(), which APScheduler executed in a worker
+        # thread that has no running event loop — every tick failed with
+        # "RuntimeError: no running event loop" and no jobs ever ran.
         sched.add_job(
-            (lambda label=job_id, r=runner: asyncio.create_task(_run_job(label, r))),
+            _run_job,
+            args=(job_id, runner),
             trigger=trigger,
             id=job_id,
             max_instances=1,
