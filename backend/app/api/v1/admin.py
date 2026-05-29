@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile, s
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_staff
+from app.api.deps import require_staff, require_superuser
 from app.core.config import settings
 from app.db.session import get_session
 from app.models.common_area import CommonArea
@@ -28,6 +28,9 @@ from app.schemas.admin import (
     PropertyCreate,
     PropertyOut,
     PropertyUpdate,
+    UserCreate,
+    UserOut,
+    UserPasswordReset,
 )
 from app.schemas.maintenance import (
     AffectedPropertyOut,
@@ -467,3 +470,67 @@ async def upload_mdu_olt_map(
     inserted = await mdu_svc.replace_all(session, records)
     distinct = len({r["mdu_name"] for r in records})
     return MduOltMapUploadResponse(rows_imported=inserted, distinct_mdus=distinct)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Users (superuser-only — SPEC §5.1 grant model surfaced as user CRUD)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _user_out(user: User, property_ids: list[int]) -> UserOut:
+    return UserOut(
+        id=user.id,
+        username=user.username,
+        is_staff=user.is_staff,
+        is_superuser=user.is_superuser,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        last_login=user.last_login,
+        property_ids=property_ids,
+    )
+
+
+@router.get("/users", response_model=list[UserOut])
+async def list_users(
+    _su: User = Depends(require_superuser),
+    session: AsyncSession = Depends(get_session),
+) -> list[UserOut]:
+    rows = await svc.list_users_with_grants(session)
+    return [_user_out(u, ids) for u, ids in rows]
+
+
+@router.post(
+    "/users",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_user_endpoint(
+    payload: UserCreate,
+    su: User = Depends(require_superuser),
+    session: AsyncSession = Depends(get_session),
+) -> UserOut:
+    try:
+        user = await svc.create_user(session, payload, granted_by_user_id=su.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return _user_out(user, sorted(payload.property_ids))
+
+
+@router.post(
+    "/users/{user_id}/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def reset_user_password_endpoint(
+    payload: UserPasswordReset,
+    user_id: int = Path(...),
+    _su: User = Depends(require_superuser),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    user = (
+        await session.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    await svc.reset_user_password(session, user, payload.password)
