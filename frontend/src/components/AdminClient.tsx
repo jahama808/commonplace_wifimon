@@ -1395,8 +1395,108 @@ function UserList({
   );
 }
 
-function UserDetail(_: { user: UserOut }) {
-  return <div className="card p-5 text-text-3">UserDetail stub</div>;
+function UserDetail({ user }: { user: UserOut }) {
+  const [resetting, setResetting] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const reset = useMutation({
+    mutationFn: () =>
+      adminApi.resetUserPassword(user.id, { password: newPassword }),
+    onSuccess: () => {
+      setResetting(false);
+      setNewPassword('');
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const roleLabel = user.is_superuser
+    ? 'Superuser'
+    : user.is_staff
+      ? 'Staff'
+      : 'Standard user';
+
+  return (
+    <div className="card p-5 space-y-5">
+      <div>
+        <div
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          USER · ID {user.id}
+        </div>
+        <div className="mt-1 text-[18px] font-semibold">{user.username}</div>
+        <div className="mt-1 text-[13px] text-text-2">{roleLabel}</div>
+      </div>
+
+      <div>
+        {!resetting ? (
+          <button
+            type="button"
+            onClick={() => setResetting(true)}
+            className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-1 hover:bg-bg-2"
+          >
+            Reset password
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newPassword.length >= 8) reset.mutate();
+            }}
+            className="space-y-2"
+          >
+            <label className="flex flex-col gap-1">
+              <span
+                className="mono text-[10px] text-text-3"
+                style={{ letterSpacing: '0.12em' }}
+              >
+                NEW PASSWORD (min 8 chars)
+              </span>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoFocus
+                required
+                minLength={8}
+                className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+              />
+            </label>
+            {error && <div className="text-[12px] text-bad">{error}</div>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={newPassword.length < 8 || reset.isPending}
+                className="rounded-m bg-accent px-3 py-2 text-[13px] font-medium text-[var(--text-on-accent)] disabled:opacity-50"
+              >
+                {reset.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetting(false);
+                  setNewPassword('');
+                  setError(null);
+                }}
+                className="rounded-m border border-line px-3 py-2 text-[13px] text-text-2 hover:bg-bg-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <PropertyAccessSection user={user} />
+    </div>
+  );
+}
+
+function PropertyAccessSection(_: { user: UserOut }) {
+  return <div className="text-text-3 text-[13px]">Property access UI — next task</div>;
 }
 
 function NewUserCard(_: { onCreated: (id: number) => void }) {
