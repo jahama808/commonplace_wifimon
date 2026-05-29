@@ -1495,8 +1495,119 @@ function UserDetail({ user }: { user: UserOut }) {
   );
 }
 
-function PropertyAccessSection(_: { user: UserOut }) {
-  return <div className="text-text-3 text-[13px]">Property access UI — next task</div>;
+function PropertyAccessSection({ user }: { user: UserOut }) {
+  const queryClient = useQueryClient();
+  const properties = useQuery({
+    queryKey: ['admin', 'properties'],
+    queryFn: () => adminApi.listProperties(),
+  });
+  const allProps = properties.data ?? [];
+  const propsById = new Map(allProps.map((p) => [p.id, p]));
+  const grantedSet = new Set(user.property_ids);
+  const availableProps = allProps.filter((p) => !grantedSet.has(p.id));
+  const [addId, setAddId] = useState<string>('');
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+
+  const grant = useMutation({
+    mutationFn: (propertyId: number) =>
+      adminApi.grantAccess({ user_id: user.id, property_id: propertyId }),
+    onSuccess: () => {
+      setAddId('');
+      invalidate();
+    },
+  });
+  const revoke = useMutation({
+    mutationFn: (propertyId: number) =>
+      adminApi.revokeAccess({ user_id: user.id, property_id: propertyId }),
+    onSuccess: invalidate,
+  });
+
+  if (user.is_superuser) {
+    return (
+      <div>
+        <div
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          PROPERTY ACCESS
+        </div>
+        <div className="mt-2 rounded-m border border-line bg-bg-2 px-3 py-2 text-[13px] text-text-2">
+          All properties (superuser)
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className="mono text-[10px] text-text-3"
+        style={{ letterSpacing: '0.12em' }}
+      >
+        PROPERTY ACCESS
+      </div>
+      <ul className="mt-2 divide-y divide-line rounded-m border border-line">
+        {user.property_ids.length === 0 && (
+          <li className="px-3 py-3 text-[13px] text-text-3">
+            No properties granted. Add one below.
+          </li>
+        )}
+        {user.property_ids.map((pid) => {
+          const p = propsById.get(pid);
+          return (
+            <li key={pid} className="flex items-center justify-between gap-2 px-3 py-2">
+              <div className="text-[13px]">
+                {p?.name ?? `Property #${pid}`}
+              </div>
+              <button
+                type="button"
+                onClick={() => revoke.mutate(pid)}
+                disabled={revoke.isPending}
+                className="rounded-m border border-line px-2 py-1 text-[12px] text-text-2 hover:bg-bg-2 hover:text-bad disabled:opacity-50"
+              >
+                Revoke
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {availableProps.length > 0 && (
+        <div className="mt-3 flex items-end gap-2">
+          <label className="flex flex-1 flex-col gap-1">
+            <span
+              className="mono text-[10px] text-text-3"
+              style={{ letterSpacing: '0.12em' }}
+            >
+              ADD PROPERTY
+            </span>
+            <select
+              value={addId}
+              onChange={(e) => setAddId(e.target.value)}
+              className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+            >
+              <option value="">— select —</option>
+              {availableProps.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={!addId || grant.isPending}
+            onClick={() => grant.mutate(Number(addId))}
+            className="rounded-m bg-accent px-3 py-2 text-[13px] font-medium text-[var(--text-on-accent)] disabled:opacity-50"
+          >
+            Grant
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function NewUserCard(_: { onCreated: (id: number) => void }) {
