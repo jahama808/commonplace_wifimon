@@ -21,6 +21,9 @@ import type {
   PropertyCreate,
   PropertyOut,
   PropertyUpdate,
+  UserCreate,
+  UserOut,
+  UserPasswordReset,
 } from '@/types/api';
 
 async function call<T>(
@@ -79,6 +82,13 @@ export const adminApi = {
     call<GrantOut>('POST', '/admin/access', body),
   revokeAccess: (body: GrantRequest) =>
     call<void>('DELETE', '/admin/access', body),
+
+  // Users
+  listUsers: () => call<UserOut[]>('GET', '/admin/users'),
+  createUser: (body: UserCreate) =>
+    call<UserOut>('POST', '/admin/users', body),
+  resetUserPassword: (id: number, body: UserPasswordReset) =>
+    call<void>('POST', `/admin/users/${id}/password`, body),
 
   // CLLI
   listOltCllis: () => call<ClliOut[]>('GET', '/admin/clli/olt'),
