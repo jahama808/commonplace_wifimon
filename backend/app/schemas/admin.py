@@ -138,3 +138,29 @@ class MduOltMapOut(BaseModel):
 class MduOltMapUploadResponse(BaseModel):
     rows_imported: int
     distinct_mdus: int
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Users (admin CRUD — site restriction via UserPropertyAccess grants)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=1, max_length=150)
+    password: str = Field(min_length=8, max_length=255)
+    property_ids: list[int] = Field(default_factory=list)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    is_staff: bool
+    is_superuser: bool
+    is_active: bool
+    created_at: datetime
+    last_login: datetime | None
+    property_ids: list[int]  # always empty for superusers (they get all)
+
+
+class UserPasswordReset(BaseModel):
+    password: str = Field(min_length=8, max_length=255)
