@@ -1610,6 +1610,152 @@ function PropertyAccessSection({ user }: { user: UserOut }) {
   );
 }
 
-function NewUserCard(_: { onCreated: (id: number) => void }) {
-  return <div className="card p-5 text-text-3">NewUserCard stub</div>;
+function NewUserCard({ onCreated }: { onCreated: (id: number) => void }) {
+  const queryClient = useQueryClient();
+  const properties = useQuery({
+    queryKey: ['admin', 'properties'],
+    queryFn: () => adminApi.listProperties(),
+  });
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [propertyIds, setPropertyIds] = useState<number[]>([]);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const create = useMutation({
+    mutationFn: () =>
+      adminApi.createUser({
+        username: username.trim(),
+        password,
+        property_ids: propertyIds,
+      }),
+    onSuccess: (u) => {
+      setUsername('');
+      setPassword('');
+      setPropertyIds([]);
+      setUsernameError(null);
+      setPasswordError(null);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      onCreated(u.id);
+    },
+    onError: (err: Error) => {
+      const msg = err.message.toLowerCase();
+      if (msg.includes('username')) setUsernameError(err.message);
+      else if (msg.includes('password') || msg.includes('at least 8')) setPasswordError(err.message);
+      else setUsernameError(err.message);
+    },
+  });
+
+  const toggleProperty = (id: number) => {
+    setPropertyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const canSubmit =
+    username.trim().length > 0 && password.length >= 8 && !create.isPending;
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canSubmit) create.mutate();
+      }}
+      className="card p-5 space-y-3"
+    >
+      <div>
+        <h3>New User</h3>
+        <div className="sub">CREATE / GRANT ACCESS</div>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <span
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          USERNAME
+        </span>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            setUsernameError(null);
+          }}
+          required
+          autoComplete="off"
+          className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+        />
+        {usernameError && (
+          <span className="text-[12px] text-bad">{usernameError}</span>
+        )}
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          PASSWORD (min 8 chars)
+        </span>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setPasswordError(null);
+          }}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          className="rounded-m border border-line bg-bg-1 px-3 py-2 text-[13px] text-text-0 outline-none focus:border-accent"
+        />
+        {passwordError && (
+          <span className="text-[12px] text-bad">{passwordError}</span>
+        )}
+      </label>
+
+      <fieldset className="space-y-1">
+        <legend
+          className="mono text-[10px] text-text-3"
+          style={{ letterSpacing: '0.12em' }}
+        >
+          PROPERTIES
+        </legend>
+        <div className="max-h-[200px] overflow-y-auto rounded-m border border-line bg-bg-1">
+          {(properties.data ?? []).length === 0 && (
+            <div className="px-3 py-3 text-[12px] text-text-3">
+              No properties yet.
+            </div>
+          )}
+          {(properties.data ?? []).map((p) => (
+            <label
+              key={p.id}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[13px] hover:bg-bg-2"
+            >
+              <input
+                type="checkbox"
+                checked={propertyIds.includes(p.id)}
+                onChange={() => toggleProperty(p.id)}
+              />
+              <span>{p.name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-m bg-accent px-3 py-2 text-[13px] font-medium text-[var(--text-on-accent)] disabled:opacity-50"
+      >
+        {create.isPending ? (
+          <Loader2 size={14} className="animate-spin" />
+        ) : (
+          <Plus size={14} />
+        )}
+        Create user
+      </button>
+    </form>
+  );
 }
