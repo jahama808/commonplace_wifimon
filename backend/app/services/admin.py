@@ -272,3 +272,13 @@ async def create_user(
     await session.commit()
     await session.refresh(user)
     return user
+
+
+async def reset_user_password(
+    session: AsyncSession, user: "User", new_password: str
+) -> None:
+    """Hash the new password and persist it. No other fields are touched."""
+    from app.services.auth import hash_password
+
+    user.password_hash = hash_password(new_password)
+    await session.commit()

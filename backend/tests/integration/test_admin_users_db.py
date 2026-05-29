@@ -73,3 +73,21 @@ class TestCreateUser:
                 ),
                 granted_by_user_id=None,
             )
+
+
+class TestResetUserPassword:
+    async def test_changes_hash_and_only_hash(self, db_session):
+        u = await svc.create_user(
+            db_session,
+            UserCreate(username="reset_me", password="oldpassword1"),
+            granted_by_user_id=None,
+        )
+        old_hash = u.password_hash
+        old_username = u.username
+
+        await svc.reset_user_password(db_session, u, "newpassword2")
+
+        assert u.password_hash != old_hash
+        assert u.username == old_username
+        assert verify_password("newpassword2", u.password_hash) is True
+        assert verify_password("oldpassword1", u.password_hash) is False
