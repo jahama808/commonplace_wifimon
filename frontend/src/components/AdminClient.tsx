@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronRight, Loader2, Pencil, Plus, Trash2, X } from 'lucid
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
+import { fetchCurrentUser } from '@/lib/auth-api';
 import { cn } from '@/lib/cn';
 import { ISLAND_OPTIONS, enumToSlug, slugToEnum } from '@/lib/islands';
 import type {
@@ -19,6 +20,14 @@ type Tab = 'properties' | 'clli' | 'maintenance' | 'mdu-map' | 'users';
 
 export function AdminClient() {
   const [tab, setTab] = useState<Tab>('properties');
+
+  const me = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: () => fetchCurrentUser(),
+    staleTime: 60_000,
+  });
+  const isSuperuser = me.data?.is_superuser ?? false;
+
   return (
     <div className="min-h-screen bg-bg-0 text-text-0">
       <header
@@ -38,12 +47,12 @@ export function AdminClient() {
       </header>
 
       <main className="mx-auto max-w-[1280px] px-4 py-6 lg:px-8">
-        <Tabs current={tab} onChange={setTab} />
+        <Tabs current={tab} onChange={setTab} isSuperuser={isSuperuser} />
         {tab === 'properties' && <PropertiesTab />}
         {tab === 'clli' && <ClliTab />}
         {tab === 'maintenance' && <MaintenanceTab />}
         {tab === 'mdu-map' && <MduMapTab />}
-        {tab === 'users' && <UsersTab />}
+        {tab === 'users' && isSuperuser && <UsersTab />}
       </main>
     </div>
   );
@@ -52,16 +61,20 @@ export function AdminClient() {
 function Tabs({
   current,
   onChange,
+  isSuperuser,
 }: {
   current: Tab;
   onChange: (t: Tab) => void;
+  isSuperuser: boolean;
 }) {
   const tabs: { key: Tab; label: string; sub: string }[] = [
     { key: 'properties', label: 'Properties', sub: 'Add / edit / common areas' },
     { key: 'clli', label: 'CLLI Library', sub: 'OLT + 7×50 codes' },
     { key: 'maintenance', label: 'Maintenance', sub: 'Scheduled windows' },
     { key: 'mdu-map', label: 'MDU Map', sub: 'Upload .xlsx · OLT lookup' },
-    { key: 'users', label: 'Users', sub: 'Create / grant access' },
+    ...(isSuperuser
+      ? [{ key: 'users' as Tab, label: 'Users', sub: 'Create / grant access' }]
+      : []),
   ];
   return (
     <div className="mb-5 flex flex-wrap gap-2 border-b border-line">
