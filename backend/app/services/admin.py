@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.eero.client import EeroClient
@@ -269,7 +270,13 @@ async def create_user(
             )
         )
 
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as e:
+        await session.rollback()
+        # Race: another caller created the same username between our pre-check
+        # and our commit. The username unique constraint fires here.
+        raise ValueError("username already taken") from e
     await session.refresh(user)
     return user
 
