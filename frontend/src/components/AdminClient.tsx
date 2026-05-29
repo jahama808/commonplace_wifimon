@@ -12,9 +12,10 @@ import type {
   ClliOut,
   MduOltMapOut,
   PropertyOut,
+  UserOut,
 } from '@/types/api';
 
-type Tab = 'properties' | 'clli' | 'maintenance' | 'mdu-map';
+type Tab = 'properties' | 'clli' | 'maintenance' | 'mdu-map' | 'users';
 
 export function AdminClient() {
   const [tab, setTab] = useState<Tab>('properties');
@@ -42,6 +43,7 @@ export function AdminClient() {
         {tab === 'clli' && <ClliTab />}
         {tab === 'maintenance' && <MaintenanceTab />}
         {tab === 'mdu-map' && <MduMapTab />}
+        {tab === 'users' && <UsersTab />}
       </main>
     </div>
   );
@@ -59,6 +61,7 @@ function Tabs({
     { key: 'clli', label: 'CLLI Library', sub: 'OLT + 7×50 codes' },
     { key: 'maintenance', label: 'Maintenance', sub: 'Scheduled windows' },
     { key: 'mdu-map', label: 'MDU Map', sub: 'Upload .xlsx · OLT lookup' },
+    { key: 'users', label: 'Users', sub: 'Create / grant access' },
   ];
   return (
     <div className="mb-5 flex flex-wrap gap-2 border-b border-line">
@@ -1281,4 +1284,54 @@ function MduUploadCard({
       )}
     </div>
   );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Users tab
+// ──────────────────────────────────────────────────────────────────────────────
+
+function UsersTab() {
+  const users = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: () => adminApi.listUsers(),
+  });
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selected = (users.data ?? []).find((u) => u.id === selectedId) ?? null;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="lg:col-span-2 space-y-4">
+        <UserList
+          users={users.data ?? []}
+          loading={users.isLoading}
+          error={users.error as Error | null}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+        {selected && <UserDetail user={selected} />}
+      </div>
+      <div className="space-y-4">
+        <NewUserCard onCreated={(id) => setSelectedId(id)} />
+        <ModeNotice />
+      </div>
+    </div>
+  );
+}
+
+function UserList(_: {
+  users: UserOut[];
+  loading: boolean;
+  error: Error | null;
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+}) {
+  return <div className="card p-5 text-text-3">UserList stub</div>;
+}
+
+function UserDetail(_: { user: UserOut }) {
+  return <div className="card p-5 text-text-3">UserDetail stub</div>;
+}
+
+function NewUserCard(_: { onCreated: (id: number) => void }) {
+  return <div className="card p-5 text-text-3">NewUserCard stub</div>;
 }
