@@ -58,6 +58,9 @@ export type MaintenanceOut = Schemas['MaintenanceOut'];
 export type MaintenanceUpdate = Schemas['MaintenanceUpdate'];
 export type MduOltMapOut = Schemas['MduOltMapOut'];
 export type MduOltMapUploadResponse = Schemas['MduOltMapUploadResponse'];
+export type UserOut = Schemas['UserOut'];
+export type UserCreate = Schemas['UserCreate'];
+export type UserPasswordReset = Schemas['UserPasswordReset'];
 
 // Search
 export type SearchResponse = Schemas['SearchResponse'];
