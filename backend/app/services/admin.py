@@ -282,3 +282,33 @@ async def reset_user_password(
 
     user.password_hash = hash_password(new_password)
     await session.commit()
+
+
+async def list_users_with_grants(
+    session: AsyncSession,
+) -> list[tuple["User", list[int]]]:
+    """Return every user with their sorted list of granted property_ids."""
+    from app.models.user import User
+
+    users = (
+        await session.execute(select(User).order_by(User.username))
+    ).scalars().all()
+
+    if not users:
+        return []
+
+    grant_rows = (
+        await session.execute(
+            select(UserPropertyAccess.user_id, UserPropertyAccess.property_id).where(
+                UserPropertyAccess.user_id.in_([u.id for u in users])
+            )
+        )
+    ).all()
+
+    by_user: dict[int, list[int]] = {u.id: [] for u in users}
+    for user_id, property_id in grant_rows:
+        by_user[user_id].append(property_id)
+    for ids in by_user.values():
+        ids.sort()
+
+    return [(u, by_user[u.id]) for u in users]

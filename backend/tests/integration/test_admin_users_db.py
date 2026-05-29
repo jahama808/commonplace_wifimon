@@ -91,3 +91,30 @@ class TestResetUserPassword:
         assert u.username == old_username
         assert verify_password("newpassword2", u.password_hash) is True
         assert verify_password("oldpassword1", u.password_hash) is False
+
+
+class TestListUsersWithGrants:
+    async def test_returns_users_with_sorted_property_ids(self, db_session):
+        p1 = Property(name="Alpha")
+        p2 = Property(name="Beta")
+        db_session.add_all([p1, p2])
+        await db_session.flush()
+
+        await svc.create_user(
+            db_session,
+            UserCreate(
+                username="multi", password="multipass1", property_ids=[p2.id, p1.id]
+            ),
+            granted_by_user_id=None,
+        )
+        await svc.create_user(
+            db_session,
+            UserCreate(username="empty", password="emptypass1"),
+            granted_by_user_id=None,
+        )
+
+        rows = await svc.list_users_with_grants(db_session)
+        by_name = {u.username: ids for u, ids in rows}
+        # property_ids come back sorted ascending, regardless of insert order
+        assert by_name["multi"] == sorted([p1.id, p2.id])
+        assert by_name["empty"] == []
