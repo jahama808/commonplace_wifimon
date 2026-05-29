@@ -211,3 +211,64 @@ async def revoke_property_access(
     await session.delete(grant)
     await session.commit()
     return True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Users (admin CRUD)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def create_user(
+    session: AsyncSession,
+    payload: "UserCreate",
+    *,
+    granted_by_user_id: int | None,
+) -> "User":
+    """Create a non-staff, non-superuser, active user and write the requested
+    property-access grants in one transaction.
+
+    Raises:
+        ValueError: username already taken
+        LookupError: one of `property_ids` does not exist
+    """
+    from app.models.user import User
+    from app.services.auth import hash_password
+
+    existing = (
+        await session.execute(select(User).where(User.username == payload.username))
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ValueError("username already taken")
+
+    if payload.property_ids:
+        found = (
+            await session.execute(
+                select(Property.id).where(Property.id.in_(payload.property_ids))
+            )
+        ).scalars().all()
+        missing = set(payload.property_ids) - set(found)
+        if missing:
+            raise LookupError(f"property not found: {sorted(missing)[0]}")
+
+    user = User(
+        username=payload.username,
+        password_hash=hash_password(payload.password),
+        is_active=True,
+        is_staff=False,
+        is_superuser=False,
+    )
+    session.add(user)
+    await session.flush()  # populate user.id
+
+    for property_id in payload.property_ids:
+        session.add(
+            UserPropertyAccess(
+                user_id=user.id,
+                property_id=property_id,
+                created_by_id=granted_by_user_id,
+            )
+        )
+
+    await session.commit()
+    await session.refresh(user)
+    return user
