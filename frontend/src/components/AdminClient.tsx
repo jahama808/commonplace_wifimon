@@ -1318,14 +1318,81 @@ function UsersTab() {
   );
 }
 
-function UserList(_: {
+function UserList({
+  users,
+  loading,
+  error,
+  selectedId,
+  onSelect,
+}: {
   users: UserOut[];
   loading: boolean;
   error: Error | null;
   selectedId: number | null;
   onSelect: (id: number) => void;
 }) {
-  return <div className="card p-5 text-text-3">UserList stub</div>;
+  return (
+    <div className="card flex flex-col">
+      <div className="card-hd border-b border-line">
+        <div>
+          <h3>Users</h3>
+          <div className="sub">{users.length} TOTAL</div>
+        </div>
+      </div>
+      <ul className="divide-y divide-line">
+        {loading && (
+          <li className="px-5 py-8 text-center text-[13px] text-text-3">Loading…</li>
+        )}
+        {error && !loading && (
+          <li className="px-5 py-3 text-[13px] text-bad">{error.message}</li>
+        )}
+        {!loading && !error && users.length === 0 && (
+          <li className="px-5 py-8 text-center text-[13px] text-text-3">
+            No users yet. Use the form on the right to add one.
+          </li>
+        )}
+        {users.map((u) => {
+          const accessLabel = u.is_superuser
+            ? 'All properties'
+            : u.property_ids.length === 0
+              ? 'No properties'
+              : `${u.property_ids.length} ${u.property_ids.length === 1 ? 'property' : 'properties'}`;
+          return (
+            <li
+              key={u.id}
+              className={cn(
+                'flex items-center gap-3 px-5 py-3',
+                selectedId === u.id && 'bg-bg-2',
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(u.id)}
+                className="flex flex-1 items-center gap-3 text-left"
+              >
+                <ChevronRight
+                  size={14}
+                  className={cn(
+                    'flex-shrink-0 text-text-3 transition-transform',
+                    selectedId === u.id && 'rotate-90 text-text-1',
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-medium">{u.username}</div>
+                  <div className="mono mt-[2px] truncate text-[10.5px] text-text-3">
+                    ID {u.id}
+                    {u.is_superuser ? ' · SUPERUSER' : u.is_staff ? ' · STAFF' : ''}
+                    {!u.is_active ? ' · INACTIVE' : ''}
+                  </div>
+                </div>
+                <span className="badge-glow accent">{accessLabel.toUpperCase()}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function UserDetail(_: { user: UserOut }) {
