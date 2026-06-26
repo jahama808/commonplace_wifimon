@@ -40,15 +40,18 @@ export function PropertyDetailClient({ propertyId }: Props) {
   const queryClient = useQueryClient();
   const [daysParam, setDaysParam] = useUrlState('days');
   const [ssidParam, setSsidParam] = useUrlState('ssid');
+  const [areaParam, setAreaParam] = useUrlState('area');
 
   const range = parseRange(daysParam);
   const ssid = ssidParam;
+  const areaId = areaParam;
 
   const setRange = useCallback(
     (r: Range) => setDaysParam(r === '7d' ? null : r),
     [setDaysParam],
   );
   const setSsid = useCallback((s: string | null) => setSsidParam(s), [setSsidParam]);
+  const setAreaId = useCallback((a: string | null) => setAreaParam(a), [setAreaParam]);
 
   const property = useQuery({
     queryKey: ['property', propertyId],
@@ -207,6 +210,8 @@ export function PropertyDetailClient({ propertyId }: Props) {
                 ssidOptions={ssids.data ?? []}
                 selectedSsid={ssid}
                 onSsidChange={setSsid}
+                selectedAreaId={areaId}
+                onAreaChange={setAreaId}
               />
             ) : (
               <div className="card flex h-[320px] animate-pulse items-center justify-center text-text-3">
@@ -380,8 +385,9 @@ function CommonAreasCard({
                 aria-hidden
               />
               <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-medium">{a.name}</div>
+                <div className="text-[14px] font-medium">{a.location_name}</div>
                 <div className="mono mt-[2px] truncate text-[10.5px] text-text-3">
+                  {a.name && a.name !== a.location_name ? `${a.name} · ` : ''}
                   {a.network_id}
                   {a.location_type ? ` · ${a.location_type}` : ''}
                   {a.description ? ` · ${a.description}` : ''}

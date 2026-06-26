@@ -78,6 +78,7 @@ def _mini_chart(networks: list[NetworkRow], hours: int = 24) -> DeviceCountsResp
             DeviceCountSeries(
                 network_id=n.network_id,
                 network_name=n.name,
+                location_name=n.location_name,
                 color=n.color,
                 data=data,
             )
@@ -109,6 +110,7 @@ def build_property_detail(property_id: str) -> PropertyDetailResponse | None:
             NetworkRow(
                 network_id=nid,
                 name=name,
+                location_name=name,
                 status=n_status,  # type: ignore[arg-type]
                 devices=share if n_status == "online" else 0,
                 color=color_for_network(nid),

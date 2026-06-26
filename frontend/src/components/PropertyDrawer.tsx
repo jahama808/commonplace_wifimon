@@ -256,8 +256,11 @@ function NetworkRowItem({ n }: { n: NetworkRow }) {
       <div className="flex items-center gap-3">
         <span className={`pulse-dot ${STATUS_DOT[n.status]}`} aria-hidden />
         <div>
-          <div className="text-[13.5px] font-medium">{n.name}</div>
-          <div className="mono mt-[2px] text-[10.5px] text-text-3">{n.network_id}</div>
+          <div className="text-[13.5px] font-medium">{n.location_name}</div>
+          <div className="mono mt-[2px] text-[10.5px] text-text-3">
+            {n.name && n.name !== n.location_name ? `${n.name} · ` : ''}
+            {n.network_id}
+          </div>
         </div>
       </div>
       <span className="badge-glow accent">{n.devices} devices</span>

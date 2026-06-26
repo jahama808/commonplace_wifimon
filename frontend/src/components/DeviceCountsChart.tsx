@@ -22,6 +22,8 @@ interface Props {
   ssidOptions?: string[];
   selectedSsid?: string | null;
   onSsidChange?: (ssid: string | null) => void;
+  selectedAreaId?: string | null;
+  onAreaChange?: (areaId: string | null) => void;
 }
 
 export function DeviceCountsChart({
@@ -32,17 +34,34 @@ export function DeviceCountsChart({
   ssidOptions,
   selectedSsid,
   onSsidChange,
+  selectedAreaId,
+  onAreaChange,
 }: Props) {
   const reducedMotion = useReducedMotion();
+
+  // One series per common area. The area filter narrows to a single area
+  // client-side — every area is already present in `data.series`.
+  const areaOptions = useMemo(
+    () => data.series.map((s) => ({ id: s.network_id, name: s.location_name })),
+    [data.series],
+  );
+  const series = useMemo(
+    () =>
+      selectedAreaId
+        ? data.series.filter((s) => s.network_id === selectedAreaId)
+        : data.series,
+    [data.series, selectedAreaId],
+  );
+
   const rows = useMemo(() => {
     return data.timestamps.map((ts, i) => {
       const row: Record<string, number | string> = { ts };
-      for (const s of data.series) {
+      for (const s of series) {
         row[s.network_id] = s.data[i] ?? 0;
       }
       return row;
     });
-  }, [data]);
+  }, [data.timestamps, series]);
 
   const empty = !data.timestamps.length;
 
@@ -56,6 +75,22 @@ export function DeviceCountsChart({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+        {onAreaChange && areaOptions.length > 0 && (
+          <select
+            value={selectedAreaId ?? ''}
+            onChange={(e) => onAreaChange(e.target.value || null)}
+            className="rounded-full border border-line bg-bg-2 px-3 py-1 text-[11.5px] text-text-1"
+            style={{ fontFamily: 'inherit' }}
+            aria-label="Filter by common area"
+          >
+            <option value="">All common areas</option>
+            {areaOptions.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        )}
         {ssidOptions && onSsidChange && (
           <select
             value={selectedSsid ?? ''}
@@ -105,7 +140,7 @@ export function DeviceCountsChart({
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
               <defs>
-                {data.series.map((s) => (
+                {series.map((s) => (
                   <linearGradient key={s.network_id} id={`fill-${s.network_id}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={s.color} stopOpacity={0.55} />
                     <stop offset="100%" stopColor={s.color} stopOpacity={0} />
@@ -125,13 +160,13 @@ export function DeviceCountsChart({
                 tick={{ fill: 'var(--text-3)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
                 width={32}
               />
-              <Tooltip content={<ChartTooltip series={data.series} />} />
-              {data.series.map((s) => (
+              <Tooltip content={<ChartTooltip series={series} />} />
+              {series.map((s) => (
                 <Area
                   key={s.network_id}
                   type="monotone"
                   dataKey={s.network_id}
-                  name={s.network_name}
+                  name={s.location_name}
                   stackId="devices"
                   stroke={s.color}
                   strokeWidth={1.5}
@@ -145,7 +180,7 @@ export function DeviceCountsChart({
         )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-line px-5 py-3 text-[11.5px]">
-        {data.series.map((s) => (
+        {series.map((s) => (
           <span key={s.network_id} className="inline-flex items-center gap-2">
             <span
               className="h-[10px] w-[10px] rounded-sm"
@@ -154,7 +189,7 @@ export function DeviceCountsChart({
                 boxShadow: `0 0 calc(6px * var(--glow)) ${s.color}`,
               }}
             />
-            {s.network_name}
+            {s.location_name}
           </span>
         ))}
       </div>
@@ -215,7 +250,7 @@ function ChartTooltip({
                   className="inline-block h-[10px] w-[10px] rounded-sm"
                   style={{ background: p.color }}
                 />
-                {meta?.network_name ?? p.dataKey}
+                {meta?.location_name ?? p.dataKey}
               </span>
               <span className="mono">{p.value}</span>
             </div>

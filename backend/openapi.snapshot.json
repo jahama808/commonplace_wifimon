@@ -831,6 +831,10 @@
             "title": "Data",
             "type": "array"
           },
+          "location_name": {
+            "title": "Location Name",
+            "type": "string"
+          },
           "network_id": {
             "title": "Network Id",
             "type": "string"
@@ -843,6 +847,7 @@
         "required": [
           "network_id",
           "network_name",
+          "location_name",
           "color",
           "data"
         ],
@@ -1588,6 +1593,10 @@
             ],
             "title": "Last Checked"
           },
+          "location_name": {
+            "title": "Location Name",
+            "type": "string"
+          },
           "location_type": {
             "anyOf": [
               {
@@ -1624,6 +1633,7 @@
         "required": [
           "network_id",
           "name",
+          "location_name",
           "status",
           "devices",
           "color"

@@ -920,6 +920,8 @@ export interface components {
             color: string;
             /** Data */
             data: number[];
+            /** Location Name */
+            location_name: string;
             /** Network Id */
             network_id: string;
             /** Network Name */
@@ -1173,6 +1175,8 @@ export interface components {
             devices: number;
             /** Last Checked */
             last_checked?: string | null;
+            /** Location Name */
+            location_name: string;
             /** Location Type */
             location_type?: ("indoor" | "outdoor") | null;
             /** Name */

@@ -45,6 +45,7 @@ async def build_property_detail_db(
             NetworkRow(
                 network_id=ca.network_id,
                 name=ca.network_name or ca.location_name,
+                location_name=ca.location_name,
                 status=n_status,  # type: ignore[arg-type]
                 devices=latest,
                 color=color_for_network(ca.network_id),
@@ -185,6 +186,7 @@ async def _mini_chart(
         DeviceCountSeries(
             network_id=areas[aid].network_id,
             network_name=areas[aid].network_name or areas[aid].location_name,
+            location_name=areas[aid].location_name,
             color=color_for_network(areas[aid].network_id),
             data=by_area[aid],
         )

@@ -158,12 +158,14 @@ def _hero_chart(days: int, ssid: str | None = None, network_seed: int = 1) -> De
         DeviceCountSeries(
             network_id="6422927",
             network_name="Lobby / Front Desk",
+            location_name="Lobby / Front Desk",
             color=color_for_network("6422927"),
             data=lobby,
         ),
         DeviceCountSeries(
             network_id="6422928",
             network_name="Pool / Bar",
+            location_name="Pool / Bar",
             color=color_for_network("6422928"),
             data=pool,
         ),

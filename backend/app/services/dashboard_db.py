@@ -347,6 +347,7 @@ async def _hero_chart(
         DeviceCountSeries(
             network_id=areas[aid].network_id if aid in areas else str(aid),
             network_name=(areas[aid].network_name or areas[aid].location_name) if aid in areas else f"Area {aid}",
+            location_name=areas[aid].location_name if aid in areas else f"Area {aid}",
             color=color_for_network(areas[aid].network_id if aid in areas else str(aid)),
             data=by_area[aid],
         )

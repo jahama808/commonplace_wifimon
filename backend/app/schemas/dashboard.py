@@ -53,7 +53,8 @@ class AlertItem(BaseModel):
 
 class DeviceCountSeries(BaseModel):
     network_id: str
-    network_name: str
+    network_name: str  # the eero network / SSID name (can repeat across properties)
+    location_name: str  # the human Common Area name, e.g. "Pool - Near Entrance"
     color: str
     data: list[int]
 

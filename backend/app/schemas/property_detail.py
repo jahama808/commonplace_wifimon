@@ -11,7 +11,8 @@ from app.schemas.dashboard import DeviceCountsResponse, Status
 
 class NetworkRow(BaseModel):
     network_id: str
-    name: str
+    name: str  # the eero network / SSID name (can repeat across properties)
+    location_name: str  # the human Common Area name, e.g. "Pool - Near Entrance"
     status: Status
     devices: int  # latest connected count
     color: str   # stable color-by-network_id

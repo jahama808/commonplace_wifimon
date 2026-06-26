@@ -82,6 +82,7 @@ async def device_counts_for_property(
         DeviceCountSeries(
             network_id=a.network_id,
             network_name=a.network_name or a.location_name,
+            location_name=a.location_name,
             color=color_for_network(a.network_id),
             data=by_area[a.id],
         )
